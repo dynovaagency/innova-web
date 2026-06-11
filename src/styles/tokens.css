@@ -1,34 +1,50 @@
 /* =============================================================================
    DESIGN TOKENS — INNOVA TRABAJO SOCIAL
    -----------------------------------------------------------------------------
-   Valores PLACEHOLDER inspirados en el wireframe inicial de Sebastián
-   (template SaaS púrpura). Cuando llegue el manual de marca definitivo,
-   este es el único archivo que hay que reescribir para que toda la web
-   adopte la identidad final de Innova.
+   Valores tomados del manual de marca v2 (Sebastián, junio 2026).
+   Paleta inspirada en profesionalismo, humanidad, renovación y esperanza.
+   Distribución sugerida: 60% fondos claros, 25% azul profundo,
+   10% celeste sage, 5% rojizo (para evitar tono militante o demasiado
+   institucional).
    ============================================================================= */
 
 :root {
-  /* ---------- COLORS — wireframe-inspired purple palette ---------- */
-  /* Brand */
-  --color-primary: #5A5275;
-  --color-primary-hover: #4A4365;
-  --color-primary-soft: #E8E4F2;
-  --color-accent: #6B5B95;
+  /* ---------- COLORS — manual de marca v2 ---------- */
+  /* Primario — rigor, confianza */
+  --color-primary: #153F71;
+  --color-primary-hover: #0E2F58;
+  --color-primary-soft: #DCE5F0;
+
+  /* Secundario — cuidado, transformación */
+  --color-secondary: #82C6C5;
+  --color-secondary-hover: #66B5B4;
+  --color-secondary-soft: #E1F2F1;
+
+  /* Acento — acción, CTA */
+  --color-accent: #F04847;
+  --color-accent-hover: #D63838;
+  --color-accent-soft: #FCE2E1;
+
+  /* Complementario — profundidad */
+  --color-complementary: #536E67;
+  --color-complementary-hover: #3F564F;
 
   /* Surfaces */
-  --color-background: #F1EFF7;
+  --color-background: #F4F1EB;
   --color-surface: #FFFFFF;
   --color-surface-elevated: #FFFFFF;
+  --color-surface-dark: #153F71;
 
   /* Text */
-  --color-text: #2D2848;
-  --color-text-muted: #6E6989;
-  --color-text-subtle: #9B97AE;
+  --color-text: #444547;
+  --color-text-muted: #6B6C6F;
+  --color-text-subtle: #9A9B9E;
   --color-text-inverse: #FFFFFF;
+  --color-text-on-primary: #FFFFFF;
 
   /* Borders */
-  --color-border: #E5E2F0;
-  --color-border-strong: #D0CCE0;
+  --color-border: #E8E4DC;
+  --color-border-strong: #D0CCC4;
 
   /* Semantic */
   --color-success: #2E7D32;
@@ -37,7 +53,6 @@
   --color-info: #1565C0;
 
   /* ---------- TYPOGRAPHY ---------- */
-  /* Inter cargado en index.html via Google Fonts — placeholder hasta manual */
   --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Monaco', 'Consolas', monospace;
@@ -90,11 +105,11 @@
   --container-narrow: 720px;
   --container-wide: 1440px;
 
-  /* ---------- BORDERS — generous radii to match wireframe ---------- */
+  /* ---------- BORDERS ---------- */
   --radius-none: 0;
   --radius-sm: 0.5rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
   --radius-xl: 2rem;
   --radius-pill: 999px;
   --radius-full: 50%;
@@ -103,9 +118,9 @@
   --border-width-thick: 2px;
 
   /* ---------- SHADOWS ---------- */
-  --shadow-sm: 0 1px 2px rgb(45 40 72 / 0.04);
-  --shadow-md: 0 4px 12px rgb(45 40 72 / 0.08);
-  --shadow-lg: 0 12px 32px rgb(45 40 72 / 0.12);
+  --shadow-sm: 0 1px 3px rgb(21 63 113 / 0.06);
+  --shadow-md: 0 4px 14px rgb(21 63 113 / 0.08);
+  --shadow-lg: 0 14px 36px rgb(21 63 113 / 0.12);
 
   /* ---------- TRANSITIONS ---------- */
   --transition-fast: 120ms ease;
