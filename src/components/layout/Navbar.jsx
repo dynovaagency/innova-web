@@ -4,22 +4,30 @@ import styles from './Navbar.module.css';
 
 const navItems = [
   { to: '/', label: 'Inicio', end: true },
-  { to: '/quienes-somos', label: 'Quiénes somos' },
-  { to: '/servicios', label: 'Servicios' },
-  { to: '/orientacion', label: 'Orientación' },
+  { to: '/quienes-somos', label: 'INNOVA' },
+  { to: '/servicios', label: 'Servicios', hasDropdown: true },
   { to: '/biblioteca', label: 'Biblioteca' },
 ];
 
-function LogoMark() {
+function LogoMark({ size = 32 }) {
+  // Logo Innova sobre fondo azul: ambos bocadillos en outline + interior blanco
   return (
-    <svg viewBox="0 0 36 32" width="36" height="32" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 60 50" width={size * 1.2} height={size} fill="none" aria-hidden="true">
+      {/* Bocadillo verde sage (atrás, arriba a la derecha) */}
       <path
-        d="M2 4C2 2.9 2.9 2 4 2H22C23.1 2 24 2.9 24 4V16C24 17.1 23.1 18 22 18H10L4 24V18C2.9 18 2 17.1 2 16V4Z"
-        fill="#153F71"
+        d="M22 4 H53 a3 3 0 0 1 3 3 V26 a3 3 0 0 1 -3 3 H44 l-2 6 -4 -6 H22 a3 3 0 0 1 -3 -3 V7 a3 3 0 0 1 3 -3 z"
+        stroke="#82C6C5"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+        fill="rgba(21, 63, 113, 0.5)"
       />
+      {/* Bocadillo rojo coral (delante, abajo a la izquierda) */}
       <path
-        d="M12 14C12 12.9 12.9 12 14 12H32C33.1 12 34 12.9 34 14V24C34 25.1 33.1 26 32 26H30V30L24 26H14C12.9 26 12 25.1 12 24V14Z"
-        fill="#F04847"
+        d="M5 16 H38 a3 3 0 0 1 3 3 V40 a3 3 0 0 1 -3 3 H20 l-6 5 0 -5 H5 a3 3 0 0 1 -3 -3 V19 a3 3 0 0 1 3 -3 z"
+        stroke="#F04847"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+        fill="#FFFFFF"
       />
     </svg>
   );
@@ -30,8 +38,11 @@ function Navbar() {
     <header className={styles.header}>
       <div className={styles.container}>
         <Link to="/" className={styles.brand} aria-label="Innova Trabajo Social — Inicio">
-          <LogoMark />
-          <span className={styles.brandText}>INNOVA</span>
+          <LogoMark size={36} />
+          <span className={styles.brandText}>
+            INNOVA
+            <span className={styles.brandTagline}>TRABAJO SOCIAL</span>
+          </span>
         </Link>
 
         <nav className={styles.nav} aria-label="Navegación principal">
@@ -46,6 +57,11 @@ function Navbar() {
                   }
                 >
                   {item.label}
+                  {item.hasDropdown && (
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  )}
                 </NavLink>
               </li>
             ))}
@@ -53,12 +69,9 @@ function Navbar() {
         </nav>
 
         <div className={styles.actions}>
-          <Button as={Link} to="/contacto" variant="secondary" size="sm">
-            Contacto
-          </Button>
-          <Button as={Link} to="/servicios" variant="primary" size="sm">
-            Empezar
-          </Button>
+          <Link to="/servicios/capsula-formativa" className={styles.inscripcionBtn}>
+            Inscripción
+          </Link>
         </div>
       </div>
     </header>

@@ -6,24 +6,30 @@ import styles from './Home.module.css';
 
 const services = [
   {
+    slug: 'capsula-formativa',
     tag: 'DESTACADO DEL MES',
     title: 'Cápsula Formativa',
     description:
       'Accedé a nuestra cápsula de formación especializada de este mes. Contenido actualizado, práctico y diseñado para fortalecer tus competencias en el Trabajo Social contemporáneo.',
     cta: 'Ver Cápsula',
-    href: '/servicios',
-    accent: 'sage',
+    href: '/servicios/capsula-formativa',
+    accent: 'red',
+    icon: 'video',
+    badge: 'DESTACADO',
   },
   {
+    slug: 'supervisiones',
     tag: 'ACOMPAÑAMIENTO PROFESIONAL',
     title: 'Supervisiones',
     description:
       'Espacios de análisis reflexivo y orientación para profesionales y equipos. Abordamos los desafíos e incertidumbres de la intervención social desde una perspectiva crítica y situada.',
     cta: 'Agendar Sesión',
     href: '/servicios',
-    accent: 'red',
+    accent: 'sage',
+    icon: 'people',
   },
   {
+    slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
     title: 'Biblioteca',
     description:
@@ -31,6 +37,7 @@ const services = [
     cta: 'Explorar Biblioteca',
     href: '/biblioteca',
     accent: 'blue',
+    icon: 'book',
   },
 ];
 
@@ -40,22 +47,47 @@ const checks = [
   'Acompañamiento crítico y situado con perspectiva ética.',
 ];
 
-function ServiceCard({ tag, title, description, cta, href, accent }) {
+const SERVICE_ICONS = {
+  video: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <path d="M22 8l-6 4 6 4V8z" />
+    </svg>
+  ),
+  people: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  book: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  ),
+};
+
+function ServiceCard({ tag, title, description, cta, href, accent, icon, badge }) {
   return (
     <article className={styles.serviceCard}>
       <div className={`${styles.serviceImage} ${styles[`accent_${accent}`]}`} aria-hidden="true">
         <svg viewBox="0 0 200 140" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <rect width="200" height="140" fill="currentColor" opacity="0.15" />
-          <circle cx="70" cy="55" r="14" fill="currentColor" opacity="0.35" />
-          <path d="M30 115 L80 70 L120 95 L160 80 L160 115 Z" fill="currentColor" opacity="0.35" />
+          <rect width="200" height="140" fill="currentColor" opacity="0.18" />
+          <circle cx="70" cy="55" r="14" fill="currentColor" opacity="0.4" />
+          <path d="M30 115 L80 70 L120 95 L160 80 L160 115 Z" fill="currentColor" opacity="0.4" />
         </svg>
+        <span className={styles.serviceIcon}>{SERVICE_ICONS[icon]}</span>
+        {badge && <span className={styles.serviceBadge}>{badge}</span>}
       </div>
       <div className={styles.serviceBody}>
         <span className={styles.serviceTag}>{tag}</span>
         <h3 className={styles.serviceTitle}>{title}</h3>
         <p className={styles.serviceDescription}>{description}</p>
         <Link to={href} className={styles.serviceCta}>
-          {cta}
+          <span>{cta}</span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
@@ -79,13 +111,14 @@ function Home() {
     <div className={styles.home}>
       {/* HERO */}
       <section className={styles.hero}>
-        <div className={styles.heroDecorTop} aria-hidden="true">
-          <svg viewBox="0 0 400 280" preserveAspectRatio="none">
-            <path d="M0,0 L0,200 L120,180 L160,240 L200,160 L280,200 L320,120 L400,140 L400,0 Z" fill="#F04847" />
+        <div className={styles.heroLeft}>
+          {/* Banner rojo superior (trapecio invertido) */}
+          <svg className={styles.heroBannerTop} viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,0 L600,0 L600,170 L450,260 L150,260 L0,170 Z" fill="#F04847" />
           </svg>
-        </div>
-        <div className={styles.heroContainer}>
-          <div className={styles.heroLeft}>
+
+          {/* Contenido del hero (sobre fondo blanco entre los dos banners) */}
+          <div className={styles.heroContent}>
             <span className={styles.heroTag}>
               <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
                 <circle cx="8" cy="8" r="6" />
@@ -100,7 +133,7 @@ function Home() {
               y el fortalecimiento de la identidad profesional y cultural. Acompañamos a colegas en sus
               recorridos, reconociendo sus contextos, desafíos y potencialidades.
             </p>
-            <Button variant="primary" size="md">
+            <Button variant="dark" size="md">
               Descubre INNOVA
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -108,28 +141,34 @@ function Home() {
               </svg>
             </Button>
           </div>
-          <div className={styles.heroRight}>
-            <div className={styles.heroImage} aria-hidden="true">
-              <svg viewBox="0 0 400 320" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-                <rect width="400" height="320" fill="#E8E4DC" />
-                <circle cx="140" cy="120" r="28" fill="#82C6C5" opacity="0.5" />
-                <circle cx="200" cy="160" r="32" fill="#153F71" opacity="0.4" />
-                <circle cx="260" cy="130" r="26" fill="#F04847" opacity="0.4" />
-                <rect x="100" y="190" width="200" height="80" rx="6" fill="#153F71" opacity="0.2" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        <div className={styles.heroDecorBottom} aria-hidden="true">
-          <svg viewBox="0 0 400 200" preserveAspectRatio="none">
-            <path d="M0,200 L0,80 L120,100 L160,40 L200,120 L280,80 L320,160 L400,140 L400,200 Z" fill="#F04847" />
+
+          {/* Banner rojo inferior (trapecio) */}
+          <svg className={styles.heroBannerBottom} viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,280 L0,110 L150,20 L450,20 L600,110 L600,280 Z" fill="#F04847" />
+          </svg>
+
+          {/* Cola del bocadillo apuntando hacia abajo-izquierda */}
+          <svg className={styles.heroBubbleTail} viewBox="0 0 70 90" aria-hidden="true">
+            <path d="M70,0 L70,55 L0,90 Z" fill="#F04847" />
           </svg>
         </div>
-        <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
-          <span className={`${styles.dot} ${styles.dotActive}`} role="tab" aria-selected="true" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
+
+        <div className={styles.heroRight}>
+          <div className={styles.heroImage} aria-hidden="true">
+            <svg viewBox="0 0 400 320" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+              <rect width="400" height="320" fill="#E8E4DC" />
+              <circle cx="140" cy="120" r="28" fill="#82C6C5" opacity="0.5" />
+              <circle cx="200" cy="160" r="32" fill="#153F71" opacity="0.4" />
+              <circle cx="260" cy="130" r="26" fill="#F04847" opacity="0.4" />
+              <rect x="100" y="190" width="200" height="80" rx="6" fill="#153F71" opacity="0.2" />
+            </svg>
+          </div>
+          <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
+            <span className={`${styles.dot} ${styles.dotActive}`} role="tab" aria-selected="true" />
+            <span className={styles.dot} role="tab" aria-selected="false" />
+            <span className={styles.dot} role="tab" aria-selected="false" />
+            <span className={styles.dot} role="tab" aria-selected="false" />
+          </div>
         </div>
       </section>
 
