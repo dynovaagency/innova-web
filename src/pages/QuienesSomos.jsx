@@ -1,4 +1,6 @@
 import Button from '../components/ui/Button.jsx';
+import misionPhoto from '../assets/card-supervision.jpg';
+import visionPhoto from '../assets/hero-conferencia.jpg';
 import styles from './QuienesSomos.module.css';
 
 const experiencia = [
@@ -18,18 +20,6 @@ const valores = [
   'Accesibilidad y democratización del conocimiento',
   'Rigurosidad profesional',
 ];
-
-function Placeholder({ accent = 'sage' }) {
-  return (
-    <svg viewBox="0 0 400 280" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      <rect width="400" height="280" fill="var(--color-border)" />
-      <circle cx="140" cy="110" r="26" fill={accent === 'sage' ? '#82C6C5' : '#153F71'} opacity="0.45" />
-      <circle cx="200" cy="150" r="32" fill="#153F71" opacity="0.4" />
-      <circle cx="260" cy="120" r="24" fill="#F04847" opacity="0.4" />
-      <rect x="100" y="180" width="200" height="70" rx="6" fill="#153F71" opacity="0.25" />
-    </svg>
-  );
-}
 
 function MisionIcon() {
   return (
@@ -123,7 +113,7 @@ function QuienesSomos() {
           <div className={styles.imageWrap}>
             <div className={styles.imageBack} aria-hidden="true" />
             <div className={styles.imageMain}>
-              <Placeholder accent="sage" />
+              <img src={misionPhoto} alt="Acompañamiento profesional en Innova" loading="lazy" />
             </div>
           </div>
           <div className={styles.textCol}>
@@ -151,7 +141,7 @@ function QuienesSomos() {
           <div className={styles.imageWrap}>
             <div className={styles.imageBack} aria-hidden="true" />
             <div className={styles.imageMain}>
-              <Placeholder accent="blue" />
+              <img src={visionPhoto} alt="Encuentro de formación en Innova" loading="lazy" />
             </div>
           </div>
           <div className={styles.textCol}>

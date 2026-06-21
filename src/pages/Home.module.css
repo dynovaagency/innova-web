@@ -85,32 +85,51 @@
 .heroRight {
   position: relative;
   overflow: hidden;
+  min-height: 480px;
 }
 
 .heroImg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 480px;
   object-fit: cover;
   display: block;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.heroImgActive {
+  opacity: 1;
 }
 
 .heroDots {
   position: absolute;
   bottom: var(--space-lg);
-  right: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: var(--space-xs);
   z-index: 3;
 }
 
 .dot {
+  appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
   width: 10px;
   height: 10px;
   border-radius: var(--radius-full);
-  background-color: rgba(255, 255, 255, 0.5);
-  transition: background-color var(--transition-fast);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-color: rgba(255, 255, 255, 0.55);
+  transition: background-color var(--transition-fast), width var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.dot:hover {
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
 .dotActive {
@@ -177,15 +196,15 @@
   position: relative;
   width: 100%;
   aspect-ratio: 5 / 3.2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   overflow: hidden;
+  background-color: var(--color-border);
 }
 
-.serviceImage > svg {
+.serviceImage > img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .serviceIcon {
@@ -215,10 +234,6 @@
   padding: 5px 12px;
   border-radius: var(--radius-pill);
 }
-
-.accent_sage { color: var(--color-secondary); background-color: var(--color-secondary-soft); }
-.accent_red  { color: var(--color-accent);    background-color: var(--color-accent-soft); }
-.accent_blue { color: var(--color-primary);   background-color: var(--color-primary-soft); }
 
 .serviceBody {
   padding: var(--space-lg) var(--space-lg) var(--space-xl);

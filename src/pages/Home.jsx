@@ -1,9 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 import PaymentModal from '../components/ui/PaymentModal.jsx';
 import heroConferencia from '../assets/hero-conferencia.jpg';
+import cardCapsula from '../assets/card-capsula.jpg';
+import cardSupervision from '../assets/card-supervision.jpg';
+import cardBiblioteca from '../assets/card-biblioteca.jpg';
 import styles from './Home.module.css';
+
+const heroSlides = [
+  { image: heroConferencia, alt: 'Encuentro de formación profesional en Innova' },
+  { image: cardSupervision, alt: 'Sesión de supervisión profesional' },
+  { image: cardCapsula, alt: 'Cápsula formativa: aprendizaje en línea' },
+  { image: cardBiblioteca, alt: 'Recursos académicos en Biblioteca Abierta' },
+];
+
+const HERO_AUTOPLAY_MS = 5000;
 
 const services = [
   {
@@ -17,6 +29,7 @@ const services = [
     accent: 'red',
     icon: 'video',
     badge: 'DESTACADO',
+    image: cardCapsula,
   },
   {
     slug: 'supervisiones',
@@ -28,6 +41,7 @@ const services = [
     href: '/servicios',
     accent: 'sage',
     icon: 'people',
+    image: cardSupervision,
   },
   {
     slug: 'biblioteca',
@@ -39,6 +53,7 @@ const services = [
     href: '/biblioteca',
     accent: 'blue',
     icon: 'book',
+    image: cardBiblioteca,
   },
 ];
 
@@ -71,15 +86,11 @@ const SERVICE_ICONS = {
   ),
 };
 
-function ServiceCard({ tag, title, description, cta, href, accent, icon, badge }) {
+function ServiceCard({ tag, title, description, cta, href, icon, badge, image }) {
   return (
     <article className={styles.serviceCard}>
-      <div className={`${styles.serviceImage} ${styles[`accent_${accent}`]}`} aria-hidden="true">
-        <svg viewBox="0 0 200 140" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <rect width="200" height="140" fill="currentColor" opacity="0.18" />
-          <circle cx="70" cy="55" r="14" fill="currentColor" opacity="0.4" />
-          <path d="M30 115 L80 70 L120 95 L160 80 L160 115 Z" fill="currentColor" opacity="0.4" />
-        </svg>
+      <div className={styles.serviceImage}>
+        <img src={image} alt={title} loading="lazy" />
         <span className={styles.serviceIcon}>{SERVICE_ICONS[icon]}</span>
         {badge && <span className={styles.serviceBadge}>{badge}</span>}
       </div>
@@ -102,6 +113,17 @@ function ServiceCard({ tag, title, description, cta, href, accent, icon, badge }
 function Home() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Auto-advance del slider del hero. Se reinicia cuando el usuario interactúa
+  // con los dots, para que el slide elegido manualmente tenga el tiempo
+  // completo de visualización antes de pasar al siguiente.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, HERO_AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [activeSlide]);
 
   const openPayment = (product) => {
     setSelectedProduct(product);
@@ -155,16 +177,28 @@ function Home() {
         </div>
 
         <div className={styles.heroRight}>
-          <img
-            src={heroConferencia}
-            alt="Encuentro de formación profesional de Innova Trabajo Social"
-            className={styles.heroImg}
-          />
+          {heroSlides.map((slide, idx) => (
+            <img
+              key={idx}
+              src={slide.image}
+              alt={slide.alt}
+              className={`${styles.heroImg} ${activeSlide === idx ? styles.heroImgActive : ''}`}
+              loading={idx === 0 ? 'eager' : 'lazy'}
+              aria-hidden={activeSlide !== idx}
+            />
+          ))}
           <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
-            <span className={`${styles.dot} ${styles.dotActive}`} role="tab" aria-selected="true" />
-            <span className={styles.dot} role="tab" aria-selected="false" />
-            <span className={styles.dot} role="tab" aria-selected="false" />
-            <span className={styles.dot} role="tab" aria-selected="false" />
+            {heroSlides.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === idx}
+                aria-label={`Ir al slide ${idx + 1} de ${heroSlides.length}`}
+                className={`${styles.dot} ${activeSlide === idx ? styles.dotActive : ''}`}
+                onClick={() => setActiveSlide(idx)}
+              />
+            ))}
           </div>
         </div>
       </section>
