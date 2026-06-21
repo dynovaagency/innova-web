@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
 import PaymentModal from '../components/ui/PaymentModal.jsx';
+import heroConferencia from '../assets/hero-conferencia.jpg';
 import styles from './Home.module.css';
 
 const services = [
@@ -112,12 +113,22 @@ function Home() {
       {/* HERO */}
       <section className={styles.hero}>
         <div className={styles.heroLeft}>
-          {/* Banner rojo superior (trapecio invertido) */}
-          <svg className={styles.heroBannerTop} viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0,0 L600,0 L600,170 L450,260 L150,260 L0,170 Z" fill="#F04847" />
+          {/* Bocadillo blanco con forma irregular y cola asomando abajo-izquierda.
+              Polígono: top-left → top edge horizontal → diagonal arriba-derecha →
+              vértice derecho (pico) → diagonal abajo-derecha → bottom edge → cola
+              (down-left) → bottom-left corner → close */}
+          <svg
+            className={styles.heroBubbleSvg}
+            viewBox="0 0 600 600"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M 0,60 L 450,60 L 580,290 L 450,500 L 160,500 L 60,590 L 80,500 L 0,500 Z"
+              fill="#FFFFFF"
+            />
           </svg>
 
-          {/* Contenido del hero (sobre fondo blanco entre los dos banners) */}
           <div className={styles.heroContent}>
             <span className={styles.heroTag}>
               <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
@@ -133,7 +144,7 @@ function Home() {
               y el fortalecimiento de la identidad profesional y cultural. Acompañamos a colegas en sus
               recorridos, reconociendo sus contextos, desafíos y potencialidades.
             </p>
-            <Button variant="dark" size="md">
+            <Button variant="secondary" size="md">
               Descubre INNOVA
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -141,28 +152,14 @@ function Home() {
               </svg>
             </Button>
           </div>
-
-          {/* Banner rojo inferior (trapecio) */}
-          <svg className={styles.heroBannerBottom} viewBox="0 0 600 280" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0,280 L0,110 L150,20 L450,20 L600,110 L600,280 Z" fill="#F04847" />
-          </svg>
-
-          {/* Cola del bocadillo apuntando hacia abajo-izquierda */}
-          <svg className={styles.heroBubbleTail} viewBox="0 0 70 90" aria-hidden="true">
-            <path d="M70,0 L70,55 L0,90 Z" fill="#F04847" />
-          </svg>
         </div>
 
         <div className={styles.heroRight}>
-          <div className={styles.heroImage} aria-hidden="true">
-            <svg viewBox="0 0 400 320" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-              <rect width="400" height="320" fill="#E8E4DC" />
-              <circle cx="140" cy="120" r="28" fill="#82C6C5" opacity="0.5" />
-              <circle cx="200" cy="160" r="32" fill="#153F71" opacity="0.4" />
-              <circle cx="260" cy="130" r="26" fill="#F04847" opacity="0.4" />
-              <rect x="100" y="190" width="200" height="80" rx="6" fill="#153F71" opacity="0.2" />
-            </svg>
-          </div>
+          <img
+            src={heroConferencia}
+            alt="Encuentro de formación profesional de Innova Trabajo Social"
+            className={styles.heroImg}
+          />
           <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
             <span className={`${styles.dot} ${styles.dotActive}`} role="tab" aria-selected="true" />
             <span className={styles.dot} role="tab" aria-selected="false" />

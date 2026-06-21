@@ -4,7 +4,9 @@
 }
 
 /* =====================================================
-   HERO — banderines rojos arriba/abajo con espacio blanco
+   HERO — fondo rojo a la izquierda con bocadillo blanco
+   irregular (cortes diagonales arriba-derecha y abajo-derecha,
+   cola apuntando hacia abajo-izquierda) + foto a la derecha
 ===================================================== */
 .hero {
   position: relative;
@@ -16,53 +18,34 @@
 
 .heroLeft {
   position: relative;
+  background-color: var(--color-accent);
   display: flex;
   align-items: center;
-  padding: 0 var(--space-3xl);
-  background-color: var(--color-surface);
-  overflow: visible;
+  padding: var(--space-3xl);
+  overflow: hidden;
 }
 
-/* Banderines rojos */
-.heroBannerTop,
-.heroBannerBottom {
+/* SVG del bocadillo blanco: cubre todo el lado izquierdo,
+   con preserveAspectRatio="none" se estira al container */
+.heroBubbleSvg {
   position: absolute;
-  left: 0;
+  inset: 0;
   width: 100%;
-  pointer-events: none;
+  height: 100%;
   z-index: 1;
-  display: block;
-}
-
-.heroBannerTop {
-  top: 0;
-  height: 22%;
-}
-
-.heroBannerBottom {
-  bottom: 0;
-  height: 25%;
-}
-
-.heroBubbleTail {
-  position: absolute;
-  bottom: 54px;
-  left: 38px;
-  width: 70px;
-  height: 90px;
-  z-index: 2;
   pointer-events: none;
 }
 
-/* Contenido sobre fondo blanco entre banderines */
+/* Contenido encima del bocadillo */
 .heroContent {
   position: relative;
-  z-index: 3;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-md);
-  max-width: 540px;
+  max-width: 460px;
+  padding-right: var(--space-2xl);
 }
 
 .heroTag {
@@ -101,31 +84,21 @@
 
 .heroRight {
   position: relative;
-  display: flex;
-  align-items: center;
-  padding: var(--space-3xl) var(--space-xl) var(--space-3xl) var(--space-3xl);
+  overflow: hidden;
 }
 
-.heroImage {
+.heroImg {
   width: 100%;
   height: 100%;
   min-height: 480px;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-
-.heroImage > svg {
-  width: 100%;
-  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
 .heroDots {
   position: absolute;
   bottom: var(--space-lg);
-  left: 50%;
-  transform: translateX(-50%);
+  right: var(--space-xl);
   display: flex;
   gap: var(--space-xs);
   z-index: 3;
@@ -135,8 +108,9 @@
   width: 10px;
   height: 10px;
   border-radius: var(--radius-full);
-  background-color: rgba(21, 63, 113, 0.25);
+  background-color: rgba(255, 255, 255, 0.5);
   transition: background-color var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .dotActive {
@@ -483,18 +457,16 @@
   }
   .heroLeft {
     padding: var(--space-3xl) var(--space-lg);
-    justify-content: center;
+    min-height: 500px;
   }
-  .heroBubble {
+  .heroContent {
     max-width: 100%;
-  }
-  .heroBubbleTail {
-    display: none;
+    padding-right: 0;
   }
   .heroRight {
-    padding: var(--space-xl) var(--space-lg);
+    min-height: 320px;
   }
-  .heroImage { min-height: 320px; }
+  .heroImg { min-height: 320px; }
 
   .servicesGrid { grid-template-columns: 1fr; gap: var(--space-lg); }
   .sectionTitle, .formTitle, .bannerTitle { font-size: var(--font-size-3xl); }
@@ -509,7 +481,7 @@
   }
   .formRow { grid-template-columns: 1fr; }
   .bannerTitle { font-size: var(--font-size-2xl); }
-  .heroBubble {
+  .heroLeft {
     padding: var(--space-xl);
   }
   .heroTitle {
