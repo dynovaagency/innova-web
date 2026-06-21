@@ -6,7 +6,6 @@ const navItems = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/quienes-somos', label: 'INNOVA' },
   { to: '/servicios', label: 'Servicios', hasDropdown: true },
-  { to: '/biblioteca', label: 'Biblioteca' },
 ];
 
 function LogoMark({ size = 32 }) {

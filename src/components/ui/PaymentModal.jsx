@@ -4,14 +4,13 @@ import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Elegí tu medio de pago".
- * Cuatro opciones acordeón: Mercado Pago (recomendado), Transferencia/Cuenta DNI,
- * PayPal y Payway (deshabilitado, "Disponible próximamente").
+ * Tres opciones acordeón: Mercado Pago (recomendado), PayPal y
+ * Payway (deshabilitado, "Disponible próximamente").
  *
  * Props:
  *   - open: boolean  → controla si está visible
  *   - onClose: () => void  → callback al cerrar
  *   - product: { title, price }  → cápsula que se está comprando
- *   - bankAccount: { titular, cvu, alias, cbu }  → datos para el flujo de transferencia
  */
 
 const ICONS = {
@@ -69,14 +68,8 @@ function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, o
   );
 }
 
-function PaymentModal({ open, onClose, product, bankAccount }) {
+function PaymentModal({ open, onClose, product }) {
   const [expanded, setExpanded] = useState('mp');
-  const [transferForm, setTransferForm] = useState({
-    name: '',
-    email: '',
-    amount: '',
-    file: null,
-  });
   const dialogRef = useRef(null);
 
   // Cierra con ESC
@@ -98,15 +91,6 @@ function PaymentModal({ open, onClose, product, bankAccount }) {
   if (!open) return null;
 
   const toggleOption = (id) => setExpanded((prev) => (prev === id ? '' : id));
-
-  const handleTransferSubmit = (e) => {
-    e.preventDefault();
-    // Por ahora — placeholder. El submit real va a Web3Forms o Formspree
-    // y dispara un email a Innova con los datos del comprador + comprobante.
-    console.log('Transfer form submit:', transferForm, 'for product:', product);
-    alert('Comprobante enviado. Innova te contactará en las próximas horas hábiles con el acceso al curso.');
-    onClose();
-  };
 
   return (
     <div className={styles.backdrop} onClick={onClose} role="presentation">
@@ -147,83 +131,6 @@ function PaymentModal({ open, onClose, product, bankAccount }) {
             <Button variant="secondary" size="md" as="a" href="#" className={styles.optionCta}>
               Pagar con Mercado Pago
             </Button>
-          </PaymentOption>
-
-          <PaymentOption
-            id="transfer"
-            icon={ICONS.bank}
-            title="Transferencia / Cuenta DNI"
-            subtitle="CVU, CBU o alias"
-            expanded={expanded === 'transfer'}
-            onClick={() => toggleOption('transfer')}
-          >
-            <div className={styles.bankCard}>
-              <h3 className={styles.bankTitle}>Datos de cuenta Innova</h3>
-              <dl className={styles.bankList}>
-                <div><dt>Titular:</dt><dd>{bankAccount?.titular || 'Innova Capacitaciones'}</dd></div>
-                <div><dt>CVU:</dt><dd>{bankAccount?.cvu || '0000003100098765432100'}</dd></div>
-                <div><dt>Alias:</dt><dd>{bankAccount?.alias || 'INNOVA.PAGO'}</dd></div>
-                <div><dt>CBU:</dt><dd>{bankAccount?.cbu || '0720479420000001234567'}</dd></div>
-              </dl>
-            </div>
-
-            <form onSubmit={handleTransferSubmit} className={styles.transferForm}>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Tu nombre completo</span>
-                <input
-                  type="text"
-                  className={styles.input}
-                  placeholder="Nombre y apellido"
-                  value={transferForm.name}
-                  onChange={(e) => setTransferForm({ ...transferForm, name: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Tu email</span>
-                <input
-                  type="email"
-                  className={styles.input}
-                  placeholder="ejemplo@email.com"
-                  value={transferForm.email}
-                  onChange={(e) => setTransferForm({ ...transferForm, email: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Monto transferido</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={styles.input}
-                  placeholder="$ 0,00"
-                  value={transferForm.amount}
-                  onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Comprobante (imagen o PDF)</span>
-                <span className={styles.fileWrap}>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className={styles.fileInput}
-                    onChange={(e) => setTransferForm({ ...transferForm, file: e.target.files?.[0] || null })}
-                    required
-                  />
-                  <span className={styles.fileButton}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                    </svg>
-                    {transferForm.file ? transferForm.file.name : 'Adjuntar comprobante'}
-                  </span>
-                </span>
-              </label>
-              <Button type="submit" variant="dark" size="md" className={styles.submitBtn}>
-                Enviar comprobante
-              </Button>
-            </form>
           </PaymentOption>
 
           <PaymentOption
