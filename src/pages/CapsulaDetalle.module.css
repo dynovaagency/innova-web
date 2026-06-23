@@ -298,6 +298,10 @@
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
+    /* En mobile/tablet el negative margin del desktop (-64px) hace que la card
+       blanca tape el final del título largo. Anulamos esa elevación y dejamos
+       que la card empiece debajo del header con un poco de aire. */
+    margin-top: var(--space-lg);
   }
   .subCards {
     grid-template-columns: 1fr;

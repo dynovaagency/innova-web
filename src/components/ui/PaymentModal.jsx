@@ -4,8 +4,14 @@ import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Elegí tu medio de pago".
- * Tres opciones acordeón: Mercado Pago (recomendado), PayPal y
- * Payway (deshabilitado, "Disponible próximamente").
+ * Dos opciones acordeón:
+ *   1. Mercado Pago — link directo al cobro
+ *   2. Cuenta DNI — QR clickeable
+ *
+ * Datos sensibles a actualizar cuando cambien:
+ *   - MERCADOPAGO_LINK: URL de cobro Mercado Pago
+ *   - CUENTA_DNI_LINK: destino del QR (TODO: pedir a Innova)
+ *   - CAPSULA_PRICE: precio de la cápsula
  *
  * Props:
  *   - open: boolean  → controla si está visible
@@ -177,12 +183,12 @@ function PaymentModal({ open, onClose, product }) {
           </PaymentOption>
 
           <PaymentOption
-            id="paypal"
-            icon={ICONS.paypal}
-            title="PayPal"
-            subtitle="Cuenta PayPal o tarjeta internacional"
-            expanded={expanded === 'paypal'}
-            onClick={() => toggleOption('paypal')}
+            id="cuentadni"
+            icon={ICONS.qr}
+            title="Cuenta DNI"
+            subtitle="Escaneá el QR o tocá para pagar"
+            expanded={expanded === 'cuentadni'}
+            onClick={() => toggleOption('cuentadni')}
           >
             <p className={styles.optionDescription}>
               Escaneá el código QR con tu app de Cuenta DNI o hacé click sobre el código si estás

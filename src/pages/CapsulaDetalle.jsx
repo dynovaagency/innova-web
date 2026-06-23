@@ -3,21 +3,6 @@ import { Link } from 'react-router-dom';
 import PaymentModal from '../components/ui/PaymentModal.jsx';
 import styles from './CapsulaDetalle.module.css';
 
-const sections = [
-  {
-    title: 'Estigmatización y Exclusión',
-    icon: 'people',
-    description:
-      'Un eje central es reflexionar sobre la criminalización como mecanismo de exclusión que afecta a grupos históricamente marginalizados: personas con padecimientos de salud mental, en conflicto con la ley penal o en situación de calle. Comprender estos procesos es fundamental para identificar cómo se perpetúan las inequidades.',
-  },
-  {
-    title: 'Rol Transformador',
-    icon: 'pulse',
-    description:
-      'El curso invita a una reflexión profunda sobre cómo los estudiantes, en su futuro desempeño, pueden convertirse en agentes de interrupción de trayectorias de exclusión y promotores activos de una inclusión social efectiva basada en el reconocimiento de derechos y la dignidad de las personas.',
-  },
-];
-
 const detalles = [
   {
     label: 'Modalidad',
@@ -129,16 +114,6 @@ function CapsulaDetalle() {
             vulnerabilidad no es un estado fijo sino el resultado de interacciones complejas entre
             sistemas, instituciones, vínculos sociales y características personales.
           </p>
-
-          <div className={styles.subCards}>
-            {sections.map((s) => (
-              <div key={s.title} className={styles.subCard}>
-                <span className={styles.subCardIcon}>{ICONS[s.icon]}</span>
-                <h3 className={styles.subCardTitle}>{s.title}</h3>
-                <p className={styles.subCardText}>{s.description}</p>
-              </div>
-            ))}
-          </div>
         </article>
 
         <aside className={styles.sidebar}>
