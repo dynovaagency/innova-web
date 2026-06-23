@@ -1,16 +1,17 @@
 import { useEffect, useState, useRef } from 'react';
 import Button from './Button.jsx';
+import cuentaDniQr from '../../assets/payment/cuentadni-qr.jpg';
 import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Elegí tu medio de pago".
  * Dos opciones acordeón:
  *   1. Mercado Pago — link directo al cobro
- *   2. Cuenta DNI — QR clickeable
+ *   2. Cuenta DNI — QR clickeable (imagen real provista por Innova)
  *
  * Datos sensibles a actualizar cuando cambien:
  *   - MERCADOPAGO_LINK: URL de cobro Mercado Pago
- *   - CUENTA_DNI_LINK: destino del QR (TODO: pedir a Innova)
+ *   - CUENTA_DNI_LINK: URL embebida en el QR de Cuenta DNI Comercios
  *   - CAPSULA_PRICE: precio de la cápsula
  *
  * Props:
@@ -20,7 +21,10 @@ import styles from './PaymentModal.module.css';
  */
 
 const MERCADOPAGO_LINK = 'https://mpago.li/17xr3Mr';
-const CUENTA_DNI_LINK = 'https://link.cuentadni.com.ar/INNOVA'; // TODO: confirmar URL real con Innova
+// URL extraída del payload EMV del QR de Cuenta DNI Comercios (Banco Provincia).
+// Es la URL oficial del comercio; al abrirla, en mobile con la app instalada
+// dispara el flujo de pago vía universal links.
+const CUENTA_DNI_LINK = 'https://cdnicomercios.com.ar/intencion/QR00015015001127244315947';
 const CAPSULA_PRICE = '$ 28.000';
 
 const ICONS = {
@@ -42,42 +46,6 @@ const ICONS = {
     </svg>
   ),
 };
-
-/** Placeholder visual del QR. Reemplazar por el QR real de Cuenta DNI de Innova
-    cuando se reciba (export PNG/SVG desde la app y poner como src de un <img>). */
-function QrPlaceholder() {
-  // Patrón pseudo-aleatorio pero determinístico (no JS-random) para que se
-  // vea como un QR real y no como un ruido cualquiera.
-  const cells = [];
-  const size = 21;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      // Marcadores de posición (esquinas) — característicos de los QR
-      const inFinder =
-        (x < 7 && y < 7) ||
-        (x >= size - 7 && y < 7) ||
-        (x < 7 && y >= size - 7);
-      const finderEdge = inFinder &&
-        ((x === 0 || x === 6 || y === 0 || y === 6) ||
-         (x >= size - 7 && (x === size - 7 || x === size - 1 || y === 0 || y === 6)) ||
-         (y >= size - 7 && (y === size - 7 || y === size - 1 || x === 0 || x === 6)));
-      const finderCenter = inFinder &&
-        ((x >= 2 && x <= 4 && y >= 2 && y <= 4) ||
-         (x >= size - 5 && x <= size - 3 && y >= 2 && y <= 4) ||
-         (x >= 2 && x <= 4 && y >= size - 5 && y <= size - 3));
-      const dataCell = !inFinder && ((x * 7 + y * 13 + x * y) % 3 === 0);
-      if (finderEdge || finderCenter || dataCell) {
-        cells.push(<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="#153F71" />);
-      }
-    }
-  }
-  return (
-    <svg viewBox="0 0 21 21" width="180" height="180" aria-label="Código QR de Cuenta DNI">
-      <rect width="21" height="21" fill="#FFFFFF" />
-      {cells}
-    </svg>
-  );
-}
 
 function PaymentOption({ id, icon, title, subtitle, badge, expanded, onClick, children }) {
   return (
@@ -199,9 +167,13 @@ function PaymentModal({ open, onClose, product }) {
               target="_blank"
               rel="noopener noreferrer"
               className={styles.qrLink}
-              aria-label="Pagar con Cuenta DNI — abrir link de pago"
+              aria-label="Pagar con Cuenta DNI — escaneá el QR o tocá para abrir el link de pago"
             >
-              <QrPlaceholder />
+              <img
+                src={cuentaDniQr}
+                alt="Código QR de pago de Cuenta DNI Comercios — Innova TS — $28.000"
+                className={styles.qrImage}
+              />
             </a>
             <p className={styles.qrHelp}>
               Una vez completado el pago, te llegará un email de confirmación con el acceso a la cápsula.
