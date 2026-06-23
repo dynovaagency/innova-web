@@ -4,15 +4,24 @@ import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Elegí tu medio de pago".
- * Cuatro opciones acordeón: Mercado Pago (recomendado), Transferencia/Cuenta DNI,
- * PayPal y Payway (deshabilitado, "Disponible próximamente").
+ * Dos opciones acordeón:
+ *   1. Mercado Pago — link directo al cobro
+ *   2. Cuenta DNI — QR clickeable
+ *
+ * Datos sensibles a actualizar cuando cambien:
+ *   - MERCADOPAGO_LINK: URL de cobro Mercado Pago
+ *   - CUENTA_DNI_LINK: destino del QR (TODO: pedir a Innova)
+ *   - CAPSULA_PRICE: precio de la cápsula
  *
  * Props:
  *   - open: boolean  → controla si está visible
  *   - onClose: () => void  → callback al cerrar
  *   - product: { title, price }  → cápsula que se está comprando
- *   - bankAccount: { titular, cvu, alias, cbu }  → datos para el flujo de transferencia
  */
+
+const MERCADOPAGO_LINK = 'https://mpago.li/17xr3Mr';
+const CUENTA_DNI_LINK = 'https://link.cuentadni.com.ar/INNOVA'; // TODO: confirmar URL real con Innova
+const CAPSULA_PRICE = '$ 28.000';
 
 const ICONS = {
   mp: (
@@ -21,35 +30,62 @@ const ICONS = {
       <text x="16" y="20" textAnchor="middle" fontFamily="Inter" fontWeight="700" fontSize="11" fill="#153F71">MP</text>
     </svg>
   ),
-  bank: (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
-      <rect width="32" height="32" rx="6" fill="#E8E4DC" />
-      <path d="M8 14L16 8L24 14V15H8V14ZM10 16H12V22H10V16ZM15 16H17V22H15V16ZM20 16H22V22H20V16ZM8 23H24V25H8V23Z" fill="#153F71"/>
-    </svg>
-  ),
-  paypal: (
+  qr: (
     <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
       <rect width="32" height="32" rx="6" fill="#153F71" />
-      <text x="16" y="20" textAnchor="middle" fontFamily="Inter" fontWeight="700" fontSize="10" fill="#FFFFFF">PP</text>
-    </svg>
-  ),
-  card: (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
-      <rect width="32" height="32" rx="6" fill="#F4F1EB" />
-      <rect x="7" y="11" width="18" height="11" rx="1.5" stroke="#6B6C6F" strokeWidth="1.5" fill="none"/>
-      <line x1="7" y1="14.5" x2="25" y2="14.5" stroke="#6B6C6F" strokeWidth="1.5"/>
+      <rect x="7" y="7" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="18" y="7" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="7" y="18" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="20" y="20" width="2" height="2" fill="#FFFFFF"/>
+      <rect x="18" y="24" width="2" height="2" fill="#FFFFFF"/>
+      <rect x="23" y="22" width="2" height="2" fill="#FFFFFF"/>
     </svg>
   ),
 };
 
-function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, onClick, children }) {
+/** Placeholder visual del QR. Reemplazar por el QR real de Cuenta DNI de Innova
+    cuando se reciba (export PNG/SVG desde la app y poner como src de un <img>). */
+function QrPlaceholder() {
+  // Patrón pseudo-aleatorio pero determinístico (no JS-random) para que se
+  // vea como un QR real y no como un ruido cualquiera.
+  const cells = [];
+  const size = 21;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      // Marcadores de posición (esquinas) — característicos de los QR
+      const inFinder =
+        (x < 7 && y < 7) ||
+        (x >= size - 7 && y < 7) ||
+        (x < 7 && y >= size - 7);
+      const finderEdge = inFinder &&
+        ((x === 0 || x === 6 || y === 0 || y === 6) ||
+         (x >= size - 7 && (x === size - 7 || x === size - 1 || y === 0 || y === 6)) ||
+         (y >= size - 7 && (y === size - 7 || y === size - 1 || x === 0 || x === 6)));
+      const finderCenter = inFinder &&
+        ((x >= 2 && x <= 4 && y >= 2 && y <= 4) ||
+         (x >= size - 5 && x <= size - 3 && y >= 2 && y <= 4) ||
+         (x >= 2 && x <= 4 && y >= size - 5 && y <= size - 3));
+      const dataCell = !inFinder && ((x * 7 + y * 13 + x * y) % 3 === 0);
+      if (finderEdge || finderCenter || dataCell) {
+        cells.push(<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill="#153F71" />);
+      }
+    }
+  }
   return (
-    <div className={`${styles.option} ${expanded ? styles.optionExpanded : ''} ${disabled ? styles.optionDisabled : ''}`}>
+    <svg viewBox="0 0 21 21" width="180" height="180" aria-label="Código QR de Cuenta DNI">
+      <rect width="21" height="21" fill="#FFFFFF" />
+      {cells}
+    </svg>
+  );
+}
+
+function PaymentOption({ id, icon, title, subtitle, badge, expanded, onClick, children }) {
+  return (
+    <div className={`${styles.option} ${expanded ? styles.optionExpanded : ''}`}>
       <button
         type="button"
         className={styles.optionHeader}
         onClick={onClick}
-        disabled={disabled}
         aria-expanded={expanded}
         aria-controls={`payment-${id}`}
       >
@@ -60,7 +96,7 @@ function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, o
         </span>
         {badge && <span className={styles.optionBadge}>{badge}</span>}
       </button>
-      {expanded && !disabled && (
+      {expanded && (
         <div id={`payment-${id}`} className={styles.optionBody}>
           {children}
         </div>
@@ -69,14 +105,8 @@ function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, o
   );
 }
 
-function PaymentModal({ open, onClose, product, bankAccount }) {
+function PaymentModal({ open, onClose, product }) {
   const [expanded, setExpanded] = useState('mp');
-  const [transferForm, setTransferForm] = useState({
-    name: '',
-    email: '',
-    amount: '',
-    file: null,
-  });
   const dialogRef = useRef(null);
 
   // Cierra con ESC
@@ -99,15 +129,6 @@ function PaymentModal({ open, onClose, product, bankAccount }) {
 
   const toggleOption = (id) => setExpanded((prev) => (prev === id ? '' : id));
 
-  const handleTransferSubmit = (e) => {
-    e.preventDefault();
-    // Por ahora — placeholder. El submit real va a Web3Forms o Formspree
-    // y dispara un email a Innova con los datos del comprador + comprobante.
-    console.log('Transfer form submit:', transferForm, 'for product:', product);
-    alert('Comprobante enviado. Innova te contactará en las próximas horas hábiles con el acceso al curso.');
-    onClose();
-  };
-
   return (
     <div className={styles.backdrop} onClick={onClose} role="presentation">
       <div
@@ -121,7 +142,11 @@ function PaymentModal({ open, onClose, product, bankAccount }) {
         <header className={styles.header}>
           <div>
             <h2 id="payment-modal-title" className={styles.title}>Elegí tu medio de pago</h2>
-            <p className={styles.subtitle}>Seleccioná cómo querés abonar tu inscripción{product?.title ? ` a ${product.title}` : ''}.</p>
+            <p className={styles.subtitle}>
+              Seleccioná cómo querés abonar tu inscripción{product?.title ? ` a ${product.title}` : ''}.
+              <br />
+              <strong>Valor: {CAPSULA_PRICE}</strong>
+            </p>
           </div>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -144,113 +169,44 @@ function PaymentModal({ open, onClose, product, bankAccount }) {
             <p className={styles.optionDescription}>
               Pagá de forma segura con Mercado Pago. Aceptamos todas las tarjetas, débito y saldo en cuenta.
             </p>
-            <Button variant="secondary" size="md" as="a" href="#" className={styles.optionCta}>
+            <Button
+              variant="secondary"
+              size="md"
+              as="a"
+              href={MERCADOPAGO_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.optionCta}
+            >
               Pagar con Mercado Pago
             </Button>
           </PaymentOption>
 
           <PaymentOption
-            id="transfer"
-            icon={ICONS.bank}
-            title="Transferencia / Cuenta DNI"
-            subtitle="CVU, CBU o alias"
-            expanded={expanded === 'transfer'}
-            onClick={() => toggleOption('transfer')}
-          >
-            <div className={styles.bankCard}>
-              <h3 className={styles.bankTitle}>Datos de cuenta Innova</h3>
-              <dl className={styles.bankList}>
-                <div><dt>Titular:</dt><dd>{bankAccount?.titular || 'Innova Capacitaciones'}</dd></div>
-                <div><dt>CVU:</dt><dd>{bankAccount?.cvu || '0000003100098765432100'}</dd></div>
-                <div><dt>Alias:</dt><dd>{bankAccount?.alias || 'INNOVA.PAGO'}</dd></div>
-                <div><dt>CBU:</dt><dd>{bankAccount?.cbu || '0720479420000001234567'}</dd></div>
-              </dl>
-            </div>
-
-            <form onSubmit={handleTransferSubmit} className={styles.transferForm}>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Tu nombre completo</span>
-                <input
-                  type="text"
-                  className={styles.input}
-                  placeholder="Nombre y apellido"
-                  value={transferForm.name}
-                  onChange={(e) => setTransferForm({ ...transferForm, name: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Tu email</span>
-                <input
-                  type="email"
-                  className={styles.input}
-                  placeholder="ejemplo@email.com"
-                  value={transferForm.email}
-                  onChange={(e) => setTransferForm({ ...transferForm, email: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Monto transferido</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className={styles.input}
-                  placeholder="$ 0,00"
-                  value={transferForm.amount}
-                  onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
-                  required
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Comprobante (imagen o PDF)</span>
-                <span className={styles.fileWrap}>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className={styles.fileInput}
-                    onChange={(e) => setTransferForm({ ...transferForm, file: e.target.files?.[0] || null })}
-                    required
-                  />
-                  <span className={styles.fileButton}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                    </svg>
-                    {transferForm.file ? transferForm.file.name : 'Adjuntar comprobante'}
-                  </span>
-                </span>
-              </label>
-              <Button type="submit" variant="dark" size="md" className={styles.submitBtn}>
-                Enviar comprobante
-              </Button>
-            </form>
-          </PaymentOption>
-
-          <PaymentOption
-            id="paypal"
-            icon={ICONS.paypal}
-            title="PayPal"
-            subtitle="Cuenta PayPal o tarjeta internacional"
-            expanded={expanded === 'paypal'}
-            onClick={() => toggleOption('paypal')}
+            id="cuentadni"
+            icon={ICONS.qr}
+            title="Cuenta DNI"
+            subtitle="Escaneá el QR o tocá para pagar"
+            expanded={expanded === 'cuentadni'}
+            onClick={() => toggleOption('cuentadni')}
           >
             <p className={styles.optionDescription}>
-              Ideal si pagás desde el exterior. Aceptamos tarjetas internacionales vía PayPal.
+              Escaneá el código QR con tu app de Cuenta DNI o hacé click sobre el código si estás
+              desde tu computadora.
             </p>
-            <Button variant="dark" size="md" as="a" href="#" className={styles.optionCta}>
-              Pagar con PayPal
-            </Button>
+            <a
+              href={CUENTA_DNI_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.qrLink}
+              aria-label="Pagar con Cuenta DNI — abrir link de pago"
+            >
+              <QrPlaceholder />
+            </a>
+            <p className={styles.qrHelp}>
+              Una vez completado el pago, te llegará un email de confirmación con el acceso a la cápsula.
+            </p>
           </PaymentOption>
-
-          <PaymentOption
-            id="payway"
-            icon={ICONS.card}
-            title="Payway / Tarjeta de crédito"
-            subtitle="Visa, Mastercard, Amex"
-            badge="Disponible próximamente"
-            disabled
-            onClick={() => {}}
-          />
         </div>
       </div>
     </div>

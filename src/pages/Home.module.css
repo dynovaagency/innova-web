@@ -4,57 +4,48 @@
 }
 
 /* =====================================================
-   HERO
+   HERO — fondo rojo a la izquierda con bocadillo blanco
+   irregular (cortes diagonales arriba-derecha y abajo-derecha,
+   cola apuntando hacia abajo-izquierda) + foto a la derecha
 ===================================================== */
 .hero {
   position: relative;
   background-color: var(--color-surface);
-  overflow: hidden;
-}
-
-.heroDecorTop,
-.heroDecorBottom {
-  position: absolute;
-  left: 0;
-  width: 38%;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.heroDecorTop {
-  top: 0;
-  height: 38%;
-}
-
-.heroDecorBottom {
-  bottom: 0;
-  height: 32%;
-}
-
-.heroDecorTop svg,
-.heroDecorBottom svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.heroContainer {
-  position: relative;
-  z-index: 2;
-  max-width: var(--container-max);
-  margin: 0 auto;
-  padding: var(--space-4xl) var(--space-xl);
   display: grid;
-  grid-template-columns: 1fr 1.05fr;
-  gap: var(--space-3xl);
-  align-items: center;
+  grid-template-columns: 1fr 1fr;
+  min-height: 640px;
 }
 
 .heroLeft {
+  position: relative;
+  background-color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  padding: var(--space-3xl);
+  overflow: hidden;
+}
+
+/* SVG del bocadillo blanco: cubre todo el lado izquierdo,
+   con preserveAspectRatio="none" se estira al container */
+.heroBubbleSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Contenido encima del bocadillo */
+.heroContent {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-md);
+  max-width: 460px;
+  padding-right: var(--space-2xl);
 }
 
 .heroTag {
@@ -71,11 +62,11 @@
 }
 
 .heroTitle {
-  font-size: clamp(var(--font-size-4xl), 5vw, var(--font-size-6xl));
+  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-5xl));
   font-weight: var(--font-weight-bold);
   line-height: 1.05;
   letter-spacing: var(--letter-spacing-tight);
-  color: var(--color-primary);
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -85,45 +76,64 @@
 }
 
 .heroDescription {
-  font-size: var(--font-size-md);
+  font-size: var(--font-size-base);
   color: var(--color-text);
   line-height: var(--line-height-relaxed);
-  max-width: 520px;
-  margin-bottom: var(--space-sm);
+  margin: 0;
 }
 
 .heroRight {
   position: relative;
+  overflow: hidden;
+  min-height: 480px;
 }
 
-.heroImage {
+.heroImg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  aspect-ratio: 5 / 4;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.heroImgActive {
+  opacity: 1;
 }
 
 .heroDots {
   position: absolute;
   bottom: var(--space-lg);
-  right: 50%;
-  transform: translateX(50%);
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: var(--space-xs);
   z-index: 3;
 }
 
 .dot {
+  appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
   width: 10px;
   height: 10px;
   border-radius: var(--radius-full);
-  background-color: rgba(21, 63, 113, 0.25);
-  transition: background-color var(--transition-fast);
+  background-color: rgba(255, 255, 255, 0.55);
+  transition: background-color var(--transition-fast), width var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.dot:hover {
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
 .dotActive {
-  background-color: var(--color-primary);
+  background-color: var(--color-secondary);
   width: 28px;
   border-radius: var(--radius-pill);
 }
@@ -182,17 +192,54 @@
   box-shadow: var(--shadow-md);
 }
 
-.serviceImage {
-  width: 100%;
-  aspect-ratio: 5 / 3.2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* La 4ta card (Biblioteca) solo se muestra en mobile. En desktop quedan
+   visibles únicamente Cápsula, Supervisiones y Formaciones. */
+.serviceCardMobileOnly {
+  display: none;
 }
 
-.accent_sage { color: var(--color-secondary); background-color: var(--color-secondary-soft); }
-.accent_red  { color: var(--color-accent);    background-color: var(--color-accent-soft); }
-.accent_blue { color: var(--color-primary);   background-color: var(--color-primary-soft); }
+.serviceImage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 3.2;
+  overflow: hidden;
+  background-color: var(--color-border);
+}
+
+.serviceImage > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.serviceIcon {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+}
+
+.serviceBadge {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  color: var(--color-text-inverse);
+  background-color: var(--color-secondary-hover);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
 
 .serviceBody {
   padding: var(--space-lg) var(--space-lg) var(--space-xl);
@@ -206,12 +253,12 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-accent);
+  color: var(--color-secondary-hover);
   text-transform: uppercase;
 }
 
 .serviceTitle {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   margin: 0;
@@ -233,16 +280,18 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-primary);
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-primary-soft);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   text-decoration: none;
   margin-top: var(--space-sm);
-  transition: background-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .serviceCta:hover {
   background-color: var(--color-primary-soft);
+  border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
@@ -423,16 +472,25 @@
    RESPONSIVE
 ===================================================== */
 @media (max-width: 1024px) {
-  .heroContainer {
+  .hero {
     grid-template-columns: 1fr;
-    text-align: center;
-    padding: var(--space-3xl) var(--space-lg);
+    min-height: auto;
   }
-  .heroLeft { align-items: center; }
-  .heroDescription { margin-left: auto; margin-right: auto; }
-  .heroDecorTop, .heroDecorBottom { width: 50%; }
+  .heroLeft {
+    padding: var(--space-3xl) var(--space-lg);
+    min-height: 500px;
+  }
+  .heroContent {
+    max-width: 100%;
+    padding-right: 0;
+  }
+  .heroRight {
+    min-height: 320px;
+  }
+  .heroImg { min-height: 320px; }
 
   .servicesGrid { grid-template-columns: 1fr; gap: var(--space-lg); }
+  .serviceCardMobileOnly { display: flex; }
   .sectionTitle, .formTitle, .bannerTitle { font-size: var(--font-size-3xl); }
 
   .formCard { grid-template-columns: 1fr; gap: var(--space-xl); padding: var(--space-xl); }
@@ -445,4 +503,10 @@
   }
   .formRow { grid-template-columns: 1fr; }
   .bannerTitle { font-size: var(--font-size-2xl); }
+  .heroLeft {
+    padding: var(--space-xl);
+  }
+  .heroTitle {
+    font-size: var(--font-size-3xl);
+  }
 }

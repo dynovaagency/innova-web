@@ -1,0 +1,321 @@
+.page {
+  width: 100%;
+  background-color: var(--color-background);
+  padding-bottom: var(--space-4xl);
+}
+
+/* ===================== HEADER ===================== */
+.header {
+  position: relative;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  padding: var(--space-3xl) var(--space-xl) var(--space-4xl);
+  overflow: hidden;
+}
+
+.headerOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(130, 198, 197, 0.15), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(21, 63, 113, 0.6), transparent 50%);
+  pointer-events: none;
+}
+
+.headerContent {
+  position: relative;
+  max-width: var(--container-max);
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.breadcrumb a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb a:hover {
+  color: var(--color-text-inverse);
+}
+
+.headerTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: rgba(130, 198, 197, 0.18);
+  color: var(--color-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  padding: 6px 14px;
+  border: 1px solid rgba(130, 198, 197, 0.4);
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-lg);
+}
+
+.headerTitle {
+  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-5xl));
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-inverse);
+  margin: 0;
+  max-width: 900px;
+}
+
+/* ===================== LAYOUT ===================== */
+.layout {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--space-xl);
+  margin-top: -64px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===================== MAIN ===================== */
+.main {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mainTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  letter-spacing: var(--letter-spacing-tight);
+  margin: 0;
+}
+
+.main p {
+  color: var(--color-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.quote {
+  background-color: var(--color-secondary-soft);
+  border-left: 4px solid var(--color-secondary);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: var(--space-sm) 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text);
+}
+
+.subCards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.subCard {
+  padding: var(--space-md);
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.subCard:nth-child(2) {
+  background-color: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+
+.subCardIcon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+}
+
+.subCardTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.subCardText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+/* ===================== SIDEBAR ===================== */
+.sidebar {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-self: start;
+  border-top: 4px solid var(--color-secondary);
+}
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.priceLine {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.priceCurrency {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.priceAmount {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.priceUnit {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.priceNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.ctaBtn {
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-wide);
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  text-transform: uppercase;
+}
+
+.ctaBtn:hover {
+  background-color: var(--color-secondary-hover);
+  color: var(--color-primary);
+}
+
+/* Detalles del curso */
+.detailsSection {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+}
+
+.detailsTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-md);
+}
+
+.detailsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.detailItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.detailIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-secondary-soft);
+  color: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.detailLabel {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.detailValues {
+  margin: 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+    /* En mobile/tablet el negative margin del desktop (-64px) hace que la card
+       blanca tape el final del título largo. Anulamos esa elevación y dejamos
+       que la card empiece debajo del header con un poco de aire. */
+    margin-top: var(--space-lg);
+  }
+  .subCards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+  .layout {
+    padding: 0 var(--space-lg);
+  }
+  .main, .sidebar {
+    padding: var(--space-lg);
+  }
+}

@@ -3,8 +3,8 @@
   top: 0;
   z-index: var(--z-sticky);
   width: 100%;
-  background-color: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .container {
@@ -22,7 +22,7 @@
   align-items: center;
   gap: var(--space-sm);
   text-decoration: none;
-  color: var(--color-primary);
+  color: var(--color-text-inverse);
   flex-shrink: 0;
 }
 
@@ -31,13 +31,25 @@
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.02em;
-  color: var(--color-primary);
+  color: var(--color-text-inverse);
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brandTagline {
+  font-size: 0.6rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.28em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
 }
 
 .nav {
   flex: 1;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-right: var(--space-lg);
 }
 
 .list {
@@ -47,28 +59,114 @@
 }
 
 .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: var(--color-text);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   padding: var(--space-xs) 0;
   transition: color var(--transition-fast);
 }
 
 .link:hover {
-  color: var(--color-primary);
+  color: var(--color-text-inverse);
 }
 
 .linkActive {
-  color: var(--color-primary);
+  color: var(--color-text-inverse);
   font-weight: var(--font-weight-semibold);
+}
+
+/* Dropdown de Servicios */
+.hasDropdown {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  min-width: 180px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
+  z-index: 100;
+}
+
+.hasDropdown:hover .dropdown,
+.hasDropdown:focus-within .dropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(4px);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 0s;
+}
+
+/* Pequeño bridge invisible para que el hover no se interrumpa entre link y dropdown */
+.dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.dropdownLink {
+  display: block;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.dropdownLink:hover {
+  background-color: var(--color-secondary-soft);
+  color: var(--color-primary);
 }
 
 .actions {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
   flex-shrink: 0;
+}
+
+/* Botón "Inscripción": fondo blanco, texto azul, pill */
+.inscripcionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  padding: 0.625rem 1.5rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border: 1px solid var(--color-surface);
+  text-decoration: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.inscripcionBtn:hover {
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-secondary);
 }
 
 @media (max-width: 1024px) {
@@ -77,12 +175,6 @@
     gap: var(--space-lg);
   }
   .nav {
-    display: none;
-  }
-}
-
-@media (max-width: 640px) {
-  .actions > :first-child {
     display: none;
   }
 }

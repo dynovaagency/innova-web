@@ -1,36 +1,71 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
-import PaymentModal from '../components/ui/PaymentModal.jsx';
+import heroConferencia from '../assets/hero-conferencia.jpg';
+import cardCapsula from '../assets/card-capsula.jpg';
+import cardSupervision from '../assets/card-supervision.jpg';
+import cardBiblioteca from '../assets/card-biblioteca.jpg';
 import styles from './Home.module.css';
+
+const heroSlides = [
+  { image: heroConferencia, alt: 'Encuentro de formación profesional en Innova' },
+  { image: cardSupervision, alt: 'Sesión de supervisión profesional' },
+  { image: cardCapsula, alt: 'Cápsula formativa: aprendizaje en línea' },
+  { image: cardBiblioteca, alt: 'Recursos académicos en Biblioteca Abierta' },
+];
+
+const HERO_AUTOPLAY_MS = 5000;
 
 const services = [
   {
+    slug: 'capsula-formativa',
     tag: 'DESTACADO DEL MES',
     title: 'Cápsula Formativa',
     description:
       'Accedé a nuestra cápsula de formación especializada de este mes. Contenido actualizado, práctico y diseñado para fortalecer tus competencias en el Trabajo Social contemporáneo.',
     cta: 'Ver Cápsula',
-    href: '/servicios',
-    accent: 'sage',
+    href: '/servicios/capsula-formativa',
+    accent: 'red',
+    icon: 'video',
+    badge: 'DESTACADO',
+    image: cardCapsula,
   },
   {
+    slug: 'supervisiones',
     tag: 'ACOMPAÑAMIENTO PROFESIONAL',
     title: 'Supervisiones',
     description:
       'Espacios de análisis reflexivo y orientación para profesionales y equipos. Abordamos los desafíos e incertidumbres de la intervención social desde una perspectiva crítica y situada.',
     cta: 'Agendar Sesión',
     href: '/servicios',
-    accent: 'red',
+    accent: 'sage',
+    icon: 'people',
+    image: cardSupervision,
   },
   {
+    slug: 'formaciones',
+    tag: 'HERRAMIENTAS Y CASOS',
+    title: 'Formaciones',
+    description:
+      'Espacios prácticos orientados al trabajo con herramientas, casos, recursos o dispositivos de intervención.',
+    cta: 'Ver Formaciones',
+    href: '/formaciones',
+    accent: 'blue',
+    icon: 'tools',
+    image: cardBiblioteca,
+  },
+  {
+    slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
     title: 'Biblioteca',
     description:
-      'Explorá nuestra colección de recursos, artículos, normativas y material de consulta indispensable para el ejercicio y la investigación en las disciplinas sociales.',
+      'Explorá nuestra colección de revistas, portales y recursos académicos seleccionados para profesionales del Trabajo Social.',
     cta: 'Explorar Biblioteca',
     href: '/biblioteca',
     accent: 'blue',
+    icon: 'book',
+    image: cardBiblioteca,
+    mobileOnly: true,
   },
 ];
 
@@ -40,22 +75,48 @@ const checks = [
   'Acompañamiento crítico y situado con perspectiva ética.',
 ];
 
-function ServiceCard({ tag, title, description, cta, href, accent }) {
+const SERVICE_ICONS = {
+  video: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <path d="M22 8l-6 4 6 4V8z" />
+    </svg>
+  ),
+  people: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  book: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  ),
+  tools: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  ),
+};
+
+function ServiceCard({ tag, title, description, cta, href, icon, badge, image, mobileOnly }) {
   return (
-    <article className={styles.serviceCard}>
-      <div className={`${styles.serviceImage} ${styles[`accent_${accent}`]}`} aria-hidden="true">
-        <svg viewBox="0 0 200 140" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-          <rect width="200" height="140" fill="currentColor" opacity="0.15" />
-          <circle cx="70" cy="55" r="14" fill="currentColor" opacity="0.35" />
-          <path d="M30 115 L80 70 L120 95 L160 80 L160 115 Z" fill="currentColor" opacity="0.35" />
-        </svg>
+    <article className={`${styles.serviceCard} ${mobileOnly ? styles.serviceCardMobileOnly : ''}`}>
+      <div className={styles.serviceImage}>
+        <img src={image} alt={title} loading="lazy" />
+        <span className={styles.serviceIcon}>{SERVICE_ICONS[icon]}</span>
+        {badge && <span className={styles.serviceBadge}>{badge}</span>}
       </div>
       <div className={styles.serviceBody}>
         <span className={styles.serviceTag}>{tag}</span>
         <h3 className={styles.serviceTitle}>{title}</h3>
         <p className={styles.serviceDescription}>{description}</p>
         <Link to={href} className={styles.serviceCta}>
-          {cta}
+          <span>{cta}</span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
@@ -67,25 +128,40 @@ function ServiceCard({ tag, title, description, cta, href, accent }) {
 }
 
 function Home() {
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeSlide, setActiveSlide] = useState(0);
 
-  const openPayment = (product) => {
-    setSelectedProduct(product);
-    setPaymentOpen(true);
-  };
+  // Auto-advance del slider del hero. Se reinicia cuando el usuario interactúa
+  // con los dots, para que el slide elegido manualmente tenga el tiempo
+  // completo de visualización antes de pasar al siguiente.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, HERO_AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [activeSlide]);
 
   return (
     <div className={styles.home}>
       {/* HERO */}
       <section className={styles.hero}>
-        <div className={styles.heroDecorTop} aria-hidden="true">
-          <svg viewBox="0 0 400 280" preserveAspectRatio="none">
-            <path d="M0,0 L0,200 L120,180 L160,240 L200,160 L280,200 L320,120 L400,140 L400,0 Z" fill="#F04847" />
+        <div className={styles.heroLeft}>
+          {/* Bocadillo blanco con forma irregular y cola asomando abajo-izquierda.
+              Polígono: top-left → top edge horizontal → diagonal arriba-derecha →
+              vértice derecho (pico) → diagonal abajo-derecha → bottom edge → cola
+              (down-left) → bottom-left corner → close */}
+          <svg
+            className={styles.heroBubbleSvg}
+            viewBox="0 0 600 600"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M 0,60 L 450,60 L 580,290 L 450,500 L 160,500 L 60,590 L 80,500 L 0,500 Z"
+              fill="#FFFFFF"
+            />
           </svg>
-        </div>
-        <div className={styles.heroContainer}>
-          <div className={styles.heroLeft}>
+
+          <div className={styles.heroContent}>
             <span className={styles.heroTag}>
               <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
                 <circle cx="8" cy="8" r="6" />
@@ -100,7 +176,7 @@ function Home() {
               y el fortalecimiento de la identidad profesional y cultural. Acompañamos a colegas en sus
               recorridos, reconociendo sus contextos, desafíos y potencialidades.
             </p>
-            <Button variant="primary" size="md">
+            <Button variant="secondary" size="md">
               Descubre INNOVA
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -108,28 +184,32 @@ function Home() {
               </svg>
             </Button>
           </div>
-          <div className={styles.heroRight}>
-            <div className={styles.heroImage} aria-hidden="true">
-              <svg viewBox="0 0 400 320" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
-                <rect width="400" height="320" fill="#E8E4DC" />
-                <circle cx="140" cy="120" r="28" fill="#82C6C5" opacity="0.5" />
-                <circle cx="200" cy="160" r="32" fill="#153F71" opacity="0.4" />
-                <circle cx="260" cy="130" r="26" fill="#F04847" opacity="0.4" />
-                <rect x="100" y="190" width="200" height="80" rx="6" fill="#153F71" opacity="0.2" />
-              </svg>
-            </div>
+        </div>
+
+        <div className={styles.heroRight}>
+          {heroSlides.map((slide, idx) => (
+            <img
+              key={idx}
+              src={slide.image}
+              alt={slide.alt}
+              className={`${styles.heroImg} ${activeSlide === idx ? styles.heroImgActive : ''}`}
+              loading={idx === 0 ? 'eager' : 'lazy'}
+              aria-hidden={activeSlide !== idx}
+            />
+          ))}
+          <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
+            {heroSlides.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                role="tab"
+                aria-selected={activeSlide === idx}
+                aria-label={`Ir al slide ${idx + 1} de ${heroSlides.length}`}
+                className={`${styles.dot} ${activeSlide === idx ? styles.dotActive : ''}`}
+                onClick={() => setActiveSlide(idx)}
+              />
+            ))}
           </div>
-        </div>
-        <div className={styles.heroDecorBottom} aria-hidden="true">
-          <svg viewBox="0 0 400 200" preserveAspectRatio="none">
-            <path d="M0,200 L0,80 L120,100 L160,40 L200,120 L280,80 L320,160 L400,140 L400,200 Z" fill="#F04847" />
-          </svg>
-        </div>
-        <div className={styles.heroDots} role="tablist" aria-label="Slides del hero">
-          <span className={`${styles.dot} ${styles.dotActive}`} role="tab" aria-selected="true" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
-          <span className={styles.dot} role="tab" aria-selected="false" />
         </div>
       </section>
 
@@ -146,16 +226,6 @@ function Home() {
           {services.map((service) => (
             <ServiceCard key={service.title} {...service} />
           ))}
-        </div>
-        <div className={styles.servicesTryout}>
-          <p>¿Querés probar el flujo de inscripción a una cápsula?</p>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => openPayment({ title: 'Cápsula Formativa', price: 'A definir' })}
-          >
-            Inscribirme a la Cápsula
-          </Button>
         </div>
       </section>
 
@@ -227,26 +297,10 @@ function Home() {
                 <input type="tel" placeholder="(011) 4444-5555" />
               </label>
             </div>
-            <div className={styles.formRow}>
-              <label className={styles.formField}>
-                <span>Empresa / Institución</span>
-                <input type="text" placeholder="Institución" />
-              </label>
-              <label className={styles.formField}>
-                <span>Rol</span>
-                <input type="text" placeholder="Rol" />
-              </label>
-            </div>
             <Button type="submit" variant="dark" size="md">Inscribirme</Button>
           </form>
         </div>
       </section>
-
-      <PaymentModal
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        product={selectedProduct}
-      />
     </div>
   );
 }

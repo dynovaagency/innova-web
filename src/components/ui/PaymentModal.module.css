@@ -175,6 +175,33 @@
   width: 100%;
 }
 
+/* QR de Cuenta DNI clickeable */
+.qrLink {
+  display: block;
+  width: fit-content;
+  margin: var(--space-sm) auto var(--space-md);
+  padding: var(--space-sm);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  text-decoration: none;
+  line-height: 0;
+}
+
+.qrLink:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.02);
+}
+
+.qrHelp {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+  text-align: center;
+  margin: 0;
+}
+
 /* Bank account card */
 .bankCard {
   background-color: var(--color-background);
