@@ -54,6 +54,20 @@ const tabs = {
     ],
     quote:
       'En estas sesiones, te acompañamos en la revisión de tus intervenciones, fortaleciendo el análisis crítico y constructivo, la toma fundamentada de decisiones y la consolidación de tu identidad profesional.',
+    subCards: [
+      {
+        title: 'Cuidado y Contención',
+        icon: 'shield',
+        description:
+          'Un espacio seguro para abordar las complejidades de nuestra labor diaria sin juicios, promoviendo el bienestar del profesional y la mejora continua de sus prácticas.',
+      },
+      {
+        title: 'Construcción Conjunta',
+        icon: 'message',
+        description:
+          'Entendemos la supervisión como un diálogo donde el conocimiento se construye horizontalmente, valorando cada perspectiva para enriquecer la mirada disciplinar.',
+      },
+    ],
     sidebar: {
       heading: '¿QUERÉS SER PARTE?',
       description: 'Contactanos para explorar cómo la supervisión puede fortalecer tu trayectoria profesional.',
@@ -75,6 +89,20 @@ const tabs = {
     ],
     quote:
       'A partir de tus inquietudes, te acompañamos en un proceso de exploración compartida donde ofrecemos información fundamentada, claridad conceptual y apoyo reflexivo.',
+    subCards: [
+      {
+        title: 'Claridad Conceptual',
+        icon: 'bulb',
+        description:
+          'Brindamos herramientas teóricas y prácticas para desentrañar las situaciones complejas, facilitando una comprensión más profunda y fundamentada del contexto.',
+      },
+      {
+        title: 'Toma de Decisiones',
+        icon: 'compass',
+        description:
+          'Acompañamos el proceso de elegir los caminos de intervención más adecuados, empoderando al profesional para actuar con seguridad y ética.',
+      },
+    ],
     sidebar: {
       heading: '¿TENÉS UN INTERROGANTE?',
       description: 'Conversemos sobre ello. Solicita tu sesión de orientación y exploremos juntos las mejores alternativas.',
@@ -133,6 +161,16 @@ function Servicios() {
           <p>{data.paragraphs[0]}</p>
           <blockquote className={styles.quote}>{data.quote}</blockquote>
           {data.paragraphs.slice(1).map((p, i) => <p key={i}>{p}</p>)}
+
+          <div className={styles.subCards}>
+            {data.subCards.map((s) => (
+              <div key={s.title} className={styles.subCard}>
+                <span className={styles.subCardIcon}>{ICONS[s.icon]}</span>
+                <h3 className={styles.subCardTitle}>{s.title}</h3>
+                <p className={styles.subCardText}>{s.description}</p>
+              </div>
+            ))}
+          </div>
         </article>
 
         <aside className={styles.sidebar}>

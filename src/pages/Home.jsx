@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
+<<<<<<< HEAD
+=======
+import PaymentModal from '../components/ui/PaymentModal.jsx';
+>>>>>>> 50a5f8eee11b6108555b5ecf13fee809ef8af23d
 import heroConferencia from '../assets/hero-conferencia.jpg';
 import cardCapsula from '../assets/card-capsula.jpg';
 import cardSupervision from '../assets/card-supervision.jpg';
@@ -43,6 +47,7 @@ const services = [
     image: cardSupervision,
   },
   {
+<<<<<<< HEAD
     slug: 'formaciones',
     tag: 'HERRAMIENTAS Y CASOS',
     title: 'Formaciones',
@@ -55,6 +60,8 @@ const services = [
     image: cardBiblioteca,
   },
   {
+=======
+>>>>>>> 50a5f8eee11b6108555b5ecf13fee809ef8af23d
     slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
     title: 'Biblioteca',
@@ -65,7 +72,10 @@ const services = [
     accent: 'blue',
     icon: 'book',
     image: cardBiblioteca,
+<<<<<<< HEAD
     mobileOnly: true,
+=======
+>>>>>>> 50a5f8eee11b6108555b5ecf13fee809ef8af23d
   },
 ];
 
@@ -96,6 +106,7 @@ const SERVICE_ICONS = {
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
   ),
+<<<<<<< HEAD
   tools: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
@@ -106,6 +117,13 @@ const SERVICE_ICONS = {
 function ServiceCard({ tag, title, description, cta, href, icon, badge, image, mobileOnly }) {
   return (
     <article className={`${styles.serviceCard} ${mobileOnly ? styles.serviceCardMobileOnly : ''}`}>
+=======
+};
+
+function ServiceCard({ tag, title, description, cta, href, icon, badge, image }) {
+  return (
+    <article className={styles.serviceCard}>
+>>>>>>> 50a5f8eee11b6108555b5ecf13fee809ef8af23d
       <div className={styles.serviceImage}>
         <img src={image} alt={title} loading="lazy" />
         <span className={styles.serviceIcon}>{SERVICE_ICONS[icon]}</span>
@@ -128,7 +146,23 @@ function ServiceCard({ tag, title, description, cta, href, icon, badge, image, m
 }
 
 function Home() {
+<<<<<<< HEAD
   const [activeSlide, setActiveSlide] = useState(0);
+=======
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Auto-advance del slider del hero. Se reinicia cuando el usuario interactúa
+  // con los dots, para que el slide elegido manualmente tenga el tiempo
+  // completo de visualización antes de pasar al siguiente.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, HERO_AUTOPLAY_MS);
+    return () => clearInterval(id);
+  }, [activeSlide]);
+>>>>>>> 50a5f8eee11b6108555b5ecf13fee809ef8af23d
 
   // Auto-advance del slider del hero. Se reinicia cuando el usuario interactúa
   // con los dots, para que el slide elegido manualmente tenga el tiempo

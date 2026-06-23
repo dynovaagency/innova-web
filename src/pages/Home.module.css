@@ -192,12 +192,6 @@
   box-shadow: var(--shadow-md);
 }
 
-/* La 4ta card (Biblioteca) solo se muestra en mobile. En desktop quedan
-   visibles únicamente Cápsula, Supervisiones y Formaciones. */
-.serviceCardMobileOnly {
-  display: none;
-}
-
 .serviceImage {
   position: relative;
   width: 100%;
