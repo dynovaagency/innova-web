@@ -325,6 +325,16 @@
   .layout {
     grid-template-columns: 1fr;
   }
+  /* En mobile/tablet los grid items toman como min-width el min-content de su
+     contenido. Como la lista de categorías es horizontal con white-space:nowrap,
+     ese min-content empuja la columna a ser más ancha que el viewport y causa
+     scroll horizontal en toda la página. min-width: 0 permite que respeten el
+     ancho del contenedor y que el overflow-x: auto de categoryList haga su
+     trabajo (scroll interno, no externo). */
+  .sidebar,
+  .content {
+    min-width: 0;
+  }
   .sidebar {
     position: static;
     padding: var(--space-md);

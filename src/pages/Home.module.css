@@ -192,6 +192,12 @@
   box-shadow: var(--shadow-md);
 }
 
+/* La 4ta card (Biblioteca) solo se muestra en mobile. En desktop quedan
+   visibles únicamente Cápsula, Supervisiones y Formaciones. */
+.serviceCardMobileOnly {
+  display: none;
+}
+
 .serviceImage {
   position: relative;
   width: 100%;
@@ -484,6 +490,7 @@
   .heroImg { min-height: 320px; }
 
   .servicesGrid { grid-template-columns: 1fr; gap: var(--space-lg); }
+  .serviceCardMobileOnly { display: flex; }
   .sectionTitle, .formTitle, .bannerTitle { font-size: var(--font-size-3xl); }
 
   .formCard { grid-template-columns: 1fr; gap: var(--space-xl); padding: var(--space-xl); }

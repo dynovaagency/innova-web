@@ -1,18 +1,25 @@
 import { NavLink, Link } from 'react-router-dom';
-import Button from '../ui/Button.jsx';
 import styles from './Navbar.module.css';
 
 const navItems = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/quienes-somos', label: 'INNOVA' },
-  { to: '/servicios', label: 'Servicios', hasDropdown: true },
+  {
+    to: '/servicios',
+    label: 'Servicios',
+    hasDropdown: true,
+    dropdown: [
+      { to: '/servicios/capsula-formativa', label: 'Cápsula' },
+      { to: '/servicios', label: 'Supervisiones' },
+      { to: '/formaciones', label: 'Formaciones' },
+    ],
+  },
+  { to: '/biblioteca', label: 'Biblioteca' },
 ];
 
 function LogoMark({ size = 32 }) {
-  // Logo Innova sobre fondo azul: ambos bocadillos en outline + interior blanco
   return (
     <svg viewBox="0 0 60 50" width={size * 1.2} height={size} fill="none" aria-hidden="true">
-      {/* Bocadillo verde sage (atrás, arriba a la derecha) */}
       <path
         d="M22 4 H53 a3 3 0 0 1 3 3 V26 a3 3 0 0 1 -3 3 H44 l-2 6 -4 -6 H22 a3 3 0 0 1 -3 -3 V7 a3 3 0 0 1 3 -3 z"
         stroke="#82C6C5"
@@ -20,7 +27,6 @@ function LogoMark({ size = 32 }) {
         strokeLinejoin="round"
         fill="rgba(21, 63, 113, 0.5)"
       />
-      {/* Bocadillo rojo coral (delante, abajo a la izquierda) */}
       <path
         d="M5 16 H38 a3 3 0 0 1 3 3 V40 a3 3 0 0 1 -3 3 H20 l-6 5 0 -5 H5 a3 3 0 0 1 -3 -3 V19 a3 3 0 0 1 3 -3 z"
         stroke="#F04847"
@@ -47,7 +53,7 @@ function Navbar() {
         <nav className={styles.nav} aria-label="Navegación principal">
           <ul className={styles.list}>
             {navItems.map((item) => (
-              <li key={item.to}>
+              <li key={item.to} className={item.hasDropdown ? styles.hasDropdown : ''}>
                 <NavLink
                   to={item.to}
                   end={item.end}
@@ -62,6 +68,17 @@ function Navbar() {
                     </svg>
                   )}
                 </NavLink>
+                {item.hasDropdown && (
+                  <ul className={styles.dropdown}>
+                    {item.dropdown.map((sub) => (
+                      <li key={sub.to}>
+                        <Link to={sub.to} className={styles.dropdownLink}>
+                          {sub.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

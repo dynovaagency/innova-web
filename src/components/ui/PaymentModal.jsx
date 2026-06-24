@@ -1,17 +1,31 @@
 import { useEffect, useState, useRef } from 'react';
 import Button from './Button.jsx';
+import cuentaDniQr from '../../assets/payment/cuentadni-qr.jpg';
 import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Elegí tu medio de pago".
- * Tres opciones acordeón: Mercado Pago (recomendado), PayPal y
- * Payway (deshabilitado, "Disponible próximamente").
+ * Dos opciones acordeón:
+ *   1. Mercado Pago — link directo al cobro
+ *   2. Cuenta DNI — QR clickeable (imagen real provista por Innova)
+ *
+ * Datos sensibles a actualizar cuando cambien:
+ *   - MERCADOPAGO_LINK: URL de cobro Mercado Pago
+ *   - CUENTA_DNI_LINK: URL embebida en el QR de Cuenta DNI Comercios
+ *   - CAPSULA_PRICE: precio de la cápsula
  *
  * Props:
  *   - open: boolean  → controla si está visible
  *   - onClose: () => void  → callback al cerrar
  *   - product: { title, price }  → cápsula que se está comprando
  */
+
+const MERCADOPAGO_LINK = 'https://mpago.li/17xr3Mr';
+// URL extraída del payload EMV del QR de Cuenta DNI Comercios (Banco Provincia).
+// Es la URL oficial del comercio; al abrirla, en mobile con la app instalada
+// dispara el flujo de pago vía universal links.
+const CUENTA_DNI_LINK = 'https://cdnicomercios.com.ar/intencion/QR00015015001127244315947';
+const CAPSULA_PRICE = '$ 28.000';
 
 const ICONS = {
   mp: (
@@ -20,35 +34,26 @@ const ICONS = {
       <text x="16" y="20" textAnchor="middle" fontFamily="Inter" fontWeight="700" fontSize="11" fill="#153F71">MP</text>
     </svg>
   ),
-  bank: (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
-      <rect width="32" height="32" rx="6" fill="#E8E4DC" />
-      <path d="M8 14L16 8L24 14V15H8V14ZM10 16H12V22H10V16ZM15 16H17V22H15V16ZM20 16H22V22H20V16ZM8 23H24V25H8V23Z" fill="#153F71"/>
-    </svg>
-  ),
-  paypal: (
+  qr: (
     <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
       <rect width="32" height="32" rx="6" fill="#153F71" />
-      <text x="16" y="20" textAnchor="middle" fontFamily="Inter" fontWeight="700" fontSize="10" fill="#FFFFFF">PP</text>
-    </svg>
-  ),
-  card: (
-    <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
-      <rect width="32" height="32" rx="6" fill="#F4F1EB" />
-      <rect x="7" y="11" width="18" height="11" rx="1.5" stroke="#6B6C6F" strokeWidth="1.5" fill="none"/>
-      <line x1="7" y1="14.5" x2="25" y2="14.5" stroke="#6B6C6F" strokeWidth="1.5"/>
+      <rect x="7" y="7" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="18" y="7" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="7" y="18" width="7" height="7" stroke="#FFFFFF" strokeWidth="1.5" fill="none"/>
+      <rect x="20" y="20" width="2" height="2" fill="#FFFFFF"/>
+      <rect x="18" y="24" width="2" height="2" fill="#FFFFFF"/>
+      <rect x="23" y="22" width="2" height="2" fill="#FFFFFF"/>
     </svg>
   ),
 };
 
-function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, onClick, children }) {
+function PaymentOption({ id, icon, title, subtitle, badge, expanded, onClick, children }) {
   return (
-    <div className={`${styles.option} ${expanded ? styles.optionExpanded : ''} ${disabled ? styles.optionDisabled : ''}`}>
+    <div className={`${styles.option} ${expanded ? styles.optionExpanded : ''}`}>
       <button
         type="button"
         className={styles.optionHeader}
         onClick={onClick}
-        disabled={disabled}
         aria-expanded={expanded}
         aria-controls={`payment-${id}`}
       >
@@ -59,7 +64,7 @@ function PaymentOption({ id, icon, title, subtitle, badge, disabled, expanded, o
         </span>
         {badge && <span className={styles.optionBadge}>{badge}</span>}
       </button>
-      {expanded && !disabled && (
+      {expanded && (
         <div id={`payment-${id}`} className={styles.optionBody}>
           {children}
         </div>
@@ -105,7 +110,11 @@ function PaymentModal({ open, onClose, product }) {
         <header className={styles.header}>
           <div>
             <h2 id="payment-modal-title" className={styles.title}>Elegí tu medio de pago</h2>
-            <p className={styles.subtitle}>Seleccioná cómo querés abonar tu inscripción{product?.title ? ` a ${product.title}` : ''}.</p>
+            <p className={styles.subtitle}>
+              Seleccioná cómo querés abonar tu inscripción{product?.title ? ` a ${product.title}` : ''}.
+              <br />
+              <strong>Valor: {CAPSULA_PRICE}</strong>
+            </p>
           </div>
           <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -128,36 +137,48 @@ function PaymentModal({ open, onClose, product }) {
             <p className={styles.optionDescription}>
               Pagá de forma segura con Mercado Pago. Aceptamos todas las tarjetas, débito y saldo en cuenta.
             </p>
-            <Button variant="secondary" size="md" as="a" href="#" className={styles.optionCta}>
+            <Button
+              variant="secondary"
+              size="md"
+              as="a"
+              href={MERCADOPAGO_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.optionCta}
+            >
               Pagar con Mercado Pago
             </Button>
           </PaymentOption>
 
           <PaymentOption
-            id="paypal"
-            icon={ICONS.paypal}
-            title="PayPal"
-            subtitle="Cuenta PayPal o tarjeta internacional"
-            expanded={expanded === 'paypal'}
-            onClick={() => toggleOption('paypal')}
+            id="cuentadni"
+            icon={ICONS.qr}
+            title="Cuenta DNI"
+            subtitle="Escaneá el QR o tocá para pagar"
+            expanded={expanded === 'cuentadni'}
+            onClick={() => toggleOption('cuentadni')}
           >
             <p className={styles.optionDescription}>
-              Ideal si pagás desde el exterior. Aceptamos tarjetas internacionales vía PayPal.
+              Escaneá el código QR con tu app de Cuenta DNI o hacé click sobre el código si estás
+              desde tu computadora.
             </p>
-            <Button variant="dark" size="md" as="a" href="#" className={styles.optionCta}>
-              Pagar con PayPal
-            </Button>
+            <a
+              href={CUENTA_DNI_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.qrLink}
+              aria-label="Pagar con Cuenta DNI — escaneá el QR o tocá para abrir el link de pago"
+            >
+              <img
+                src={cuentaDniQr}
+                alt="Código QR de pago de Cuenta DNI Comercios — Innova TS — $28.000"
+                className={styles.qrImage}
+              />
+            </a>
+            <p className={styles.qrHelp}>
+              Una vez completado el pago, te llegará un email de confirmación con el acceso a la cápsula.
+            </p>
           </PaymentOption>
-
-          <PaymentOption
-            id="payway"
-            icon={ICONS.card}
-            title="Payway / Tarjeta de crédito"
-            subtitle="Visa, Mastercard, Amex"
-            badge="Disponible próximamente"
-            disabled
-            onClick={() => {}}
-          />
         </div>
       </div>
     </div>

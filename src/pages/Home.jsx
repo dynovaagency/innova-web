@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button.jsx';
-import PaymentModal from '../components/ui/PaymentModal.jsx';
 import heroConferencia from '../assets/hero-conferencia.jpg';
 import cardCapsula from '../assets/card-capsula.jpg';
 import cardSupervision from '../assets/card-supervision.jpg';
@@ -44,16 +43,29 @@ const services = [
     image: cardSupervision,
   },
   {
+    slug: 'formaciones',
+    tag: 'HERRAMIENTAS Y CASOS',
+    title: 'Formaciones',
+    description:
+      'Espacios prácticos orientados al trabajo con herramientas, casos, recursos o dispositivos de intervención.',
+    cta: 'Ver Formaciones',
+    href: '/formaciones',
+    accent: 'blue',
+    icon: 'tools',
+    image: cardBiblioteca,
+  },
+  {
     slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
     title: 'Formaciones',
     description:
-      'Explorá nuestra colección de recursos, artículos, normativas y material de consulta indispensable para el ejercicio y la investigación en las disciplinas sociales.',
+      'Explorá nuestra colección de revistas, portales y recursos académicos seleccionados para profesionales del Trabajo Social.',
     cta: 'Explorar Biblioteca',
     href: '/biblioteca',
     accent: 'blue',
     icon: 'book',
     image: cardBiblioteca,
+    mobileOnly: true,
   },
 ];
 
@@ -84,11 +96,16 @@ const SERVICE_ICONS = {
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
     </svg>
   ),
+  tools: (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  ),
 };
 
-function ServiceCard({ tag, title, description, cta, href, icon, badge, image }) {
+function ServiceCard({ tag, title, description, cta, href, icon, badge, image, mobileOnly }) {
   return (
-    <article className={styles.serviceCard}>
+    <article className={`${styles.serviceCard} ${mobileOnly ? styles.serviceCardMobileOnly : ''}`}>
       <div className={styles.serviceImage}>
         <img src={image} alt={title} loading="lazy" />
         <span className={styles.serviceIcon}>{SERVICE_ICONS[icon]}</span>
@@ -111,8 +128,6 @@ function ServiceCard({ tag, title, description, cta, href, icon, badge, image })
 }
 
 function Home() {
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeSlide, setActiveSlide] = useState(0);
 
   // Auto-advance del slider del hero. Se reinicia cuando el usuario interactúa
@@ -124,11 +139,6 @@ function Home() {
     }, HERO_AUTOPLAY_MS);
     return () => clearInterval(id);
   }, [activeSlide]);
-
-  const openPayment = (product) => {
-    setSelectedProduct(product);
-    setPaymentOpen(true);
-  };
 
   return (
     <div className={styles.home}>
@@ -217,16 +227,6 @@ function Home() {
             <ServiceCard key={service.title} {...service} />
           ))}
         </div>
-        <div className={styles.servicesTryout}>
-          <p>¿Querés probar el flujo de inscripción a una cápsula?</p>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => openPayment({ title: 'Cápsula Formativa', price: 'A definir' })}
-          >
-            Inscribirme a la Cápsula
-          </Button>
-        </div>
       </section>
 
       {/* BANNER AZUL */}
@@ -297,26 +297,10 @@ function Home() {
                 <input type="tel" placeholder="(011) 4444-5555" />
               </label>
             </div>
-            <div className={styles.formRow}>
-              <label className={styles.formField}>
-                <span>Empresa / Institución</span>
-                <input type="text" placeholder="Institución" />
-              </label>
-              <label className={styles.formField}>
-                <span>Rol</span>
-                <input type="text" placeholder="Rol" />
-              </label>
-            </div>
             <Button type="submit" variant="dark" size="md">Inscribirme</Button>
           </form>
         </div>
       </section>
-
-      <PaymentModal
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        product={selectedProduct}
-      />
     </div>
   );
 }
