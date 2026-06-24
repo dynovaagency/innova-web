@@ -46,7 +46,7 @@ const services = [
   {
     slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
-    title: 'Biblioteca',
+    title: 'Formaciones',
     description:
       'Explorá nuestra colección de recursos, artículos, normativas y material de consulta indispensable para el ejercicio y la investigación en las disciplinas sociales.',
     cta: 'Explorar Biblioteca',
