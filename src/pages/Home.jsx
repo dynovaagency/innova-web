@@ -5,6 +5,7 @@ import heroConferencia from '../assets/hero-conferencia.jpg';
 import cardCapsula from '../assets/card-capsula.jpg';
 import cardSupervision from '../assets/card-supervision.jpg';
 import cardBiblioteca from '../assets/card-biblioteca.jpg';
+import formacionesHero from '../assets/formaciones-hero.jpg';
 import styles from './Home.module.css';
 
 const heroSlides = [
@@ -52,12 +53,12 @@ const services = [
     href: '/formaciones',
     accent: 'blue',
     icon: 'tools',
-    image: cardBiblioteca,
+    image: formacionesHero,
   },
   {
     slug: 'biblioteca',
     tag: 'RECURSOS Y SABERES',
-    title: 'Formaciones',
+    title: 'Biblioteca',
     description:
       'Explorá nuestra colección de revistas, portales y recursos académicos seleccionados para profesionales del Trabajo Social.',
     cta: 'Explorar Biblioteca',

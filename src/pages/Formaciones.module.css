@@ -1,19 +1,18 @@
 .page {
   width: 100%;
   background-color: var(--color-background);
-  padding-bottom: var(--space-4xl);
-  min-height: 60vh;
 }
 
-.header {
+/* ===================== HERO ===================== */
+.hero {
   position: relative;
   background-color: var(--color-primary);
   color: var(--color-text-inverse);
-  padding: var(--space-3xl) var(--space-xl) var(--space-4xl);
+  padding: var(--space-4xl) var(--space-xl);
   overflow: hidden;
 }
 
-.headerOverlay {
+.heroOverlay {
   position: absolute;
   inset: 0;
   background:
@@ -22,31 +21,24 @@
   pointer-events: none;
 }
 
-.headerContent {
+.heroContainer {
   position: relative;
   max-width: var(--container-max);
   margin: 0 auto;
-}
-
-.breadcrumb {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: var(--space-3xl);
   align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-secondary);
-  margin-bottom: var(--space-md);
 }
 
-.breadcrumb a {
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
+.heroText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  align-items: flex-start;
 }
 
-.breadcrumb a:hover { color: var(--color-text-inverse); }
-
-.headerTag {
+.heroTag {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
@@ -58,59 +50,238 @@
   padding: 6px 14px;
   border: 1px solid rgba(130, 198, 197, 0.4);
   border-radius: var(--radius-pill);
-  margin-bottom: var(--space-lg);
 }
 
-.headerTitle {
-  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-5xl));
+.heroTitle {
+  font-size: clamp(var(--font-size-4xl), 5vw, var(--font-size-5xl));
   font-weight: var(--font-weight-bold);
-  line-height: 1.1;
+  line-height: 1.05;
   letter-spacing: var(--letter-spacing-tight);
   color: var(--color-text-inverse);
-  margin: 0 0 var(--space-md);
-}
-
-.headerDescription {
-  font-size: var(--font-size-base);
-  color: rgba(255, 255, 255, 0.85);
-  line-height: var(--line-height-relaxed);
-  max-width: 720px;
-  margin: 0;
-}
-
-.body {
-  max-width: var(--container-max);
-  margin: -32px auto 0;
-  padding: 0 var(--space-xl);
-  position: relative;
-  z-index: 2;
-}
-
-.card {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2xl);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-}
-
-.cardTitle {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
   margin: 0 0 var(--space-sm);
 }
 
-.cardText {
+.heroDescription {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.heroDescription strong {
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Foto del hero con overlay de "Perspectiva Crítica" */
+.heroPhoto {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.heroImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: var(--radius-lg);
+}
+
+.perspectivaCard {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: var(--space-xl);
+  max-width: 280px;
+  background-color: rgba(20, 20, 24, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--color-text-inverse);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.perspectivaTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-2xs);
+  color: var(--color-text-inverse);
+}
+
+.perspectivaText {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+/* ===================== CALENDARIO ===================== */
+.calendar {
+  background-color: var(--color-background);
+  padding: var(--space-4xl) var(--space-xl);
+}
+
+.calendarHeader {
+  max-width: 720px;
+  margin: 0 auto var(--space-2xl);
+  text-align: center;
+}
+
+.calendarTag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background-color: var(--color-secondary-soft);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-md);
+}
+
+.calendarTitle {
+  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-4xl));
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  letter-spacing: var(--letter-spacing-tight);
+  margin: 0 0 var(--space-sm);
+}
+
+.calendarSubtitle {
   color: var(--color-text);
   font-size: var(--font-size-base);
   line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.calendarGrid {
+  max-width: var(--container-max);
   margin: 0 auto;
-  max-width: 560px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-lg);
+}
+
+.monthColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Header del mes — card blanca con barra superior coloreada */
+.monthHeader {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.monthHeader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background-color: currentColor;
+}
+
+.monthLabel {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.18em;
+  color: currentColor;
+}
+
+/* Colores por mes (accents) */
+.accent_primary { color: var(--color-primary); }
+.accent_sage    { color: var(--color-secondary-hover); }
+.accent_lime    { color: #94B922; }
+
+.cursosList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cursoCard {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.cursoCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.cursoIcon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+
+/* Fondo suave (tinte 15% del color del mes) sin afectar el SVG */
+.cursoIcon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  opacity: 0.15;
+  border-radius: inherit;
+}
+
+.cursoIcon > svg {
+  position: relative;
+  z-index: 1;
+  /* hereda el color del mes vía currentColor → ícono sólido en color del mes */
+}
+
+.cursoText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1024px) {
+  .heroContainer {
+    grid-template-columns: 1fr;
+    gap: var(--space-2xl);
+  }
+  .calendarGrid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+  }
 }
 
 @media (max-width: 640px) {
-  .header { padding: var(--space-2xl) var(--space-lg); }
-  .body { padding: 0 var(--space-lg); }
-  .card { padding: var(--space-xl); }
+  .hero {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+  .calendar {
+    padding: var(--space-3xl) var(--space-lg);
+  }
+  .perspectivaCard {
+    bottom: var(--space-md);
+    left: var(--space-md);
+    max-width: calc(100% - var(--space-xl));
+  }
 }
