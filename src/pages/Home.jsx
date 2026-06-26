@@ -70,12 +70,6 @@ const services = [
   },
 ];
 
-const checks = [
-  'Espacio multiplataforma para profesionales del Trabajo Social.',
-  'Equipo con amplia trayectoria en intervención e investigación.',
-  'Acompañamiento crítico y situado con perspectiva ética.',
-];
-
 const SERVICE_ICONS = {
   video: (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -177,7 +171,7 @@ function Home() {
               y el fortalecimiento de la identidad profesional y cultural. Acompañamos a colegas en sus
               recorridos, reconociendo sus contextos, desafíos y potencialidades.
             </p>
-            <Button variant="secondary" size="md">
+            <Button as={Link} to="/quienes-somos" variant="secondary" size="md">
               Descubre INNOVA
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -242,64 +236,13 @@ function Home() {
           <p className={styles.bannerDescription}>
             Un espacio multiplataforma diseñado para profesionales comprometidos con la transformación social.
           </p>
-          <Button variant="primary" size="md">
+          <Button as={Link} to="/inscripcion" variant="primary" size="md">
             Descubre INNOVA
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
           </Button>
-        </div>
-      </section>
-
-      {/* FORMULARIO */}
-      <section className={styles.formSection}>
-        <div className={styles.formCard}>
-          <div className={styles.formLeft}>
-            <h2 className={styles.formTitle}>
-              Un equipo dedicado a hacer crecer tu organización
-            </h2>
-            <p className={styles.formDescription}>
-              Ofrecemos formaciones, supervisiones y acompañamiento institucional adaptado a
-              las necesidades de tu equipo o institución.
-            </p>
-            <ul className={styles.checkList}>
-              {checks.map((label, idx) => (
-                <li key={idx} className={styles.checkItem}>
-                  <span className={styles.checkIcon} aria-hidden="true">
-                    <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
-                      <circle cx="10" cy="10" r="10" fill="currentColor" opacity="0.15" />
-                      <path d="M6 10.5 L9 13.5 L14.5 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  {label}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <form className={styles.formRight} onSubmit={(e) => e.preventDefault()}>
-            <div className={styles.formRow}>
-              <label className={styles.formField}>
-                <span>Nombre</span>
-                <input type="text" placeholder="Nombre" />
-              </label>
-              <label className={styles.formField}>
-                <span>Apellido</span>
-                <input type="text" placeholder="Apellido" />
-              </label>
-            </div>
-            <div className={styles.formRow}>
-              <label className={styles.formField}>
-                <span>Email</span>
-                <input type="email" placeholder="ejemplo@email.com" />
-              </label>
-              <label className={styles.formField}>
-                <span>Teléfono</span>
-                <input type="tel" placeholder="(011) 4444-5555" />
-              </label>
-            </div>
-            <Button type="submit" variant="dark" size="md">Inscribirme</Button>
-          </form>
         </div>
       </section>
     </div>

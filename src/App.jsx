@@ -7,6 +7,7 @@ import CapsulaDetalle from './pages/CapsulaDetalle.jsx';
 import Formaciones from './pages/Formaciones.jsx';
 import Orientacion from './pages/Orientacion.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
+import Inscripcion from './pages/Inscripcion.jsx';
 import Contacto from './pages/Contacto.jsx';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/formaciones" element={<Formaciones />} />
         <Route path="/orientacion" element={<Orientacion />} />
         <Route path="/biblioteca" element={<Biblioteca />} />
+        <Route path="/inscripcion" element={<Inscripcion />} />
         <Route path="/contacto" element={<Contacto />} />
       </Route>
     </Routes>

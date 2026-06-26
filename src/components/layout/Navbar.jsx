@@ -85,7 +85,7 @@ function Navbar() {
         </nav>
 
         <div className={styles.actions}>
-          <Link to="/servicios/capsula-formativa" className={styles.inscripcionBtn}>
+          <Link to="/inscripcion" className={styles.inscripcionBtn}>
             Inscripción
           </Link>
         </div>
