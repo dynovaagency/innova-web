@@ -11,3 +11,10 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Las páginas de curso solo se acceden por link privado (redirect post-pago de MP).
+# X-Robots-Tag le dice a los crawlers que no las indexen ni sigan sus links.
+[[headers]]
+  for = "/curso/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

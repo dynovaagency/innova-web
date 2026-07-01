@@ -1,0 +1,8 @@
+# robots.txt de Innova Trabajo Social
+
+User-agent: *
+# Las páginas de curso son de acceso privado (solo por link post-pago).
+Disallow: /curso/
+Allow: /
+
+Sitemap: https://innovatrabajosocial.com.ar/sitemap.xml

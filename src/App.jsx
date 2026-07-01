@@ -9,6 +9,7 @@ import Orientacion from './pages/Orientacion.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
 import Inscripcion from './pages/Inscripcion.jsx';
 import Contacto from './pages/Contacto.jsx';
+import Curso from './pages/Curso.jsx';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/biblioteca" element={<Biblioteca />} />
         <Route path="/inscripcion" element={<Inscripcion />} />
         <Route path="/contacto" element={<Contacto />} />
+        <Route path="/curso/:slug" element={<Curso />} />
       </Route>
     </Routes>
   );
