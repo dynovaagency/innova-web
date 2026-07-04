@@ -1,9 +1,19 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
+  # Mientras no tengamos tokens reales de Mercado Pago, MOCK_MODE queda activo.
+  # Cuando Innova nos pase el Access Token, hay que:
+  #   1. Cargar MP_ACCESS_TOKEN en Site settings → Environment variables
+  #   2. Cambiar MOCK_MODE a "false" (o borrarlo — se desactiva solo si hay token)
+  MOCK_MODE = "true"
+
+# Functions individuales (aliases más cortos si algún día queremos)
+[functions]
+  node_bundler = "esbuild"
 
 # SPA fallback — soporte para rutas de React Router
 # (también está en public/_redirects, pero acá queda explícito)
@@ -16,5 +26,20 @@
 # X-Robots-Tag le dice a los crawlers que no las indexen ni sigan sus links.
 [[headers]]
   for = "/curso/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/pago-pendiente"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/pago-fallido"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/mock-checkout"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"

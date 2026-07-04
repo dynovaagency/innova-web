@@ -147,3 +147,61 @@
 .mpHelp a:hover {
   text-decoration: underline;
 }
+
+/* ===================== EMAIL + STATES ===================== */
+.emailField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.emailField span {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.emailField input {
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast);
+}
+
+.emailField input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.emailField input:disabled {
+  background-color: var(--color-background);
+  cursor: not-allowed;
+}
+
+.errorBox {
+  padding: var(--space-sm) var(--space-md);
+  background-color: rgba(240, 72, 71, 0.08);
+  border: 1px solid rgba(240, 72, 71, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-snug);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

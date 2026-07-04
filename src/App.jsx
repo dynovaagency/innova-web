@@ -10,6 +10,9 @@ import Biblioteca from './pages/Biblioteca.jsx';
 import Inscripcion from './pages/Inscripcion.jsx';
 import Contacto from './pages/Contacto.jsx';
 import Curso from './pages/Curso.jsx';
+import PagoPendiente from './pages/PagoPendiente.jsx';
+import PagoFallido from './pages/PagoFallido.jsx';
+import MockCheckout from './pages/MockCheckout.jsx';
 
 function App() {
   return (
@@ -25,6 +28,9 @@ function App() {
         <Route path="/inscripcion" element={<Inscripcion />} />
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/curso/:slug" element={<Curso />} />
+        <Route path="/pago-pendiente" element={<PagoPendiente />} />
+        <Route path="/pago-fallido" element={<PagoFallido />} />
+        <Route path="/mock-checkout" element={<MockCheckout />} />
       </Route>
     </Routes>
   );

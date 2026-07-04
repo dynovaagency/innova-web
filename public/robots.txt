@@ -1,8 +1,11 @@
 # robots.txt de Innova Trabajo Social
 
 User-agent: *
-# Las páginas de curso son de acceso privado (solo por link post-pago).
+# Rutas privadas: solo se acceden desde el flujo de pago post-checkout.
 Disallow: /curso/
+Disallow: /pago-pendiente
+Disallow: /pago-fallido
+Disallow: /mock-checkout
 Allow: /
 
 Sitemap: https://innovatrabajosocial.com.ar/sitemap.xml

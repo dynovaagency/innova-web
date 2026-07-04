@@ -1,0 +1,123 @@
+.page {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl) var(--space-xl);
+  background: repeating-linear-gradient(
+    45deg,
+    #FEF3C7,
+    #FEF3C7 20px,
+    #FDE68A 20px,
+    #FDE68A 40px
+  );
+}
+
+.card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3xl);
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.mockLabel {
+  display: inline-block;
+  align-self: flex-start;
+  background-color: #92400E;
+  color: #FEF3C7;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.1em;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.description {
+  color: var(--color-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.info {
+  background-color: var(--color-background);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.info > div {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+
+.info dt {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  min-width: 90px;
+}
+
+.info dd {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.info code {
+  font-family: monospace;
+  font-size: 0.9em;
+  background-color: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.btn {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btnApprove {
+  background-color: #16A34A;
+  color: white;
+}
+
+.btnPending {
+  background-color: #EAB308;
+  color: #422006;
+}
+
+.btnReject {
+  background-color: var(--color-accent);
+  color: white;
+}

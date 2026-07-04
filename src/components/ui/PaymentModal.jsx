@@ -1,43 +1,43 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Button from './Button.jsx';
 import styles from './PaymentModal.module.css';
 
 /**
  * Modal "Confirmá tu inscripción".
  *
- * MVP: única pasarela = Mercado Pago. Al confirmar, se abre el link de cobro
- * de MP en una pestaña nueva. La redirección post-pago exitoso (back al
- * curso) está configurada del lado de Mercado Pago, en el panel del link:
+ * MVP con backend mínimo:
+ *   1. Al confirmar, pega POST a /.netlify/functions/create-preference con
+ *      el slug del curso.
+ *   2. Recibe { initPoint, externalReference } y redirige al usuario a MP.
+ *   3. MP procesa el pago y redirige a /curso/:slug?ref=... o /pago-pendiente
+ *      o /pago-fallido, según el estado.
+ *   4. La página del curso verifica el ref contra /verify-payment antes de
+ *      mostrar el iframe.
  *
- *   success_url → https://innovatrabajosocial.com.ar/curso/vulnerabilidad-social
- *   failure_url → https://innovatrabajosocial.com.ar/servicios/capsula-formativa
- *   pending_url → https://innovatrabajosocial.com.ar/servicios/capsula-formativa
- *
- * Fase 2: se sumará Cuenta DNI con verificación automática vía backend.
- * El asset del QR sigue disponible en src/assets/payment/cuentadni-qr.jpg
- * para no perder trabajo hecho.
+ * Modo mock: si el backend responde con { mock: true }, en vez de redirigir
+ * a MP redirige a /mock-checkout, una pantalla local que simula el pago.
  *
  * Props:
- *   - open: boolean  → controla si está visible
- *   - onClose: () => void  → callback al cerrar
- *   - product: { title, price }  → cápsula que se está comprando
+ *   - open: boolean
+ *   - onClose: () => void
+ *   - product: { slug, title, price }
  */
 
-const MERCADOPAGO_LINK = 'https://mpago.li/17xr3Mr';
 const CAPSULA_PRICE = '$ 28.000';
 
 function PaymentModal({ open, onClose, product }) {
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [email, setEmail] = useState('');
   const dialogRef = useRef(null);
 
-  // Cierra con ESC
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === 'Escape' && onClose();
+    const onKey = (e) => e.key === 'Escape' && !loading && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open, onClose, loading]);
 
-  // Bloquea scroll del body
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -45,10 +45,50 @@ function PaymentModal({ open, onClose, product }) {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
+  // Reset del estado interno al cerrar
+  useEffect(() => {
+    if (!open) {
+      setErrorMsg('');
+      setLoading(false);
+    }
+  }, [open]);
+
   if (!open) return null;
 
+  const handlePay = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/.netlify/functions/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cursoSlug: product?.slug || 'vulnerabilidad-social',
+          buyerEmail: email || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'No se pudo iniciar el pago');
+      }
+
+      const data = await res.json();
+      if (!data.initPoint) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      // Redirigimos al Checkout Pro de MP (o al mock en desarrollo)
+      window.location.href = data.initPoint;
+    } catch (err) {
+      console.error('Error al crear preferencia:', err);
+      setErrorMsg(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className={styles.backdrop} onClick={onClose} role="presentation">
+    <div className={styles.backdrop} onClick={loading ? undefined : onClose} role="presentation">
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -66,7 +106,13 @@ function PaymentModal({ open, onClose, product }) {
               <strong>Total: {CAPSULA_PRICE}</strong>
             </p>
           </div>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={onClose}
+            aria-label="Cerrar"
+            disabled={loading}
+          >
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="6" y1="6" x2="18" y2="18" />
               <line x1="6" y1="18" x2="18" y2="6" />
@@ -89,24 +135,48 @@ function PaymentModal({ open, onClose, product }) {
           </div>
 
           <p className={styles.mpDescription}>
-            Al confirmar, te redirigimos a Mercado Pago para completar el pago de forma segura.
-            Una vez acreditado, vas a ser dirigido automáticamente a la cápsula para comenzar el curso.
+            Al confirmar, vas a ser dirigido a Mercado Pago para completar el pago.
+            Una vez acreditado, te llevamos automáticamente a la cápsula.
           </p>
+
+          <label className={styles.emailField}>
+            <span>Tu email (para el comprobante)</span>
+            <input
+              type="email"
+              placeholder="ejemplo@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+            />
+          </label>
+
+          {errorMsg && (
+            <div className={styles.errorBox} role="alert">
+              {errorMsg}
+            </div>
+          )}
 
           <Button
             variant="secondary"
             size="md"
-            as="a"
-            href={MERCADOPAGO_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={handlePay}
+            disabled={loading}
             className={styles.mpCta}
           >
-            Pagar con Mercado Pago
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
+            {loading ? (
+              <>
+                <span className={styles.spinner} aria-hidden="true" />
+                Iniciando pago...
+              </>
+            ) : (
+              <>
+                Pagar con Mercado Pago
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </>
+            )}
           </Button>
 
           <p className={styles.mpHelp}>
