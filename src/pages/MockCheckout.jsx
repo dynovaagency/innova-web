@@ -24,21 +24,10 @@ function MockCheckout() {
   const approve = async () => {
     if (!ref) return;
     setProcessing(true);
-    try {
-      const res = await fetch(`/.netlify/functions/mock-approve?ref=${encodeURIComponent(ref)}`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (data.approved) {
-        navigate(`/curso/${slug || data.cursoSlug}?ref=${ref}`);
-      } else {
-        alert('No se pudo aprobar el pago mock');
-        setProcessing(false);
-      }
-    } catch (err) {
-      alert('Error al aprobar: ' + err.message);
-      setProcessing(false);
-    }
+    // Delay artificial para simular el "procesando pago" del checkout real
+    setTimeout(() => {
+      navigate(`/curso/${slug || 'vulnerabilidad-social'}?ref=${ref}`);
+    }, 800);
   };
 
   const reject = () => {

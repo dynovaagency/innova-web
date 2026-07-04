@@ -56,28 +56,13 @@ export const handler = async (event) => {
   const externalReference = generateExternalReference();
 
   // --- MODO MOCK ---------------------------------------------------
-  // Simulamos que MP creó la preferencia. Devolvemos una URL falsa que en
-  // el frontend interceptamos para simular el flujo de éxito.
+  // No persistimos nada. Solo generamos el ref y devolvemos la URL al mock
+  // checkout. verify-payment en modo mock siempre acepta cualquier ref.
+  // Esto es intencional: mock mode es para demostrar el flujo, no para
+  // validar accesos. Cuando MOCK_MODE se desactiva con creds reales de MP,
+  // todo pasa por Blobs con persistencia real.
   if (MOCK_MODE) {
-    console.log('[MOCK] Preference creada:', externalReference);
-    try {
-      await savePayment({
-        externalReference,
-        status: 'pending',
-        amount: curso.price,
-        currency: 'ARS',
-        buyerEmail: buyerEmail || null,
-        cursoSlug,
-        mpPreferenceId: `mock_pref_${externalReference}`,
-        mpPaymentId: null,
-        createdAt: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error('[MOCK] error guardando pago:', err);
-      return error(500, 'No se pudo iniciar el pago (mock store error)', {
-        details: err.message,
-      });
-    }
+    console.log('[MOCK] Preference simulada:', externalReference);
     return ok({
       preferenceId: `mock_pref_${externalReference}`,
       initPoint: `${SITE_URL}/mock-checkout?ref=${externalReference}&slug=${cursoSlug}`,

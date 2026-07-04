@@ -13,7 +13,7 @@
  * mensaje amigable en vez de un error genérico del navegador.
  */
 
-import { ok, error, preflight } from './_lib/config.js';
+import { MOCK_MODE, ok, error, preflight } from './_lib/config.js';
 import { getPayment } from './_lib/store.js';
 
 export const handler = async (event) => {
@@ -27,6 +27,24 @@ export const handler = async (event) => {
     return ok({ valid: false, reason: 'missing_ref' });
   }
 
+  // --- MODO MOCK ---------------------------------------------------
+  // No hay persistencia en mock. Cualquier ref con el prefijo esperado se
+  // acepta. La página del curso confía en el slug del path para saber qué
+  // cápsula mostrar.
+  if (MOCK_MODE) {
+    if (!ref.startsWith('inv_')) {
+      return ok({ valid: false, reason: 'not_found' });
+    }
+    return ok({
+      valid: true,
+      cursoSlug: expectedSlug || 'vulnerabilidad-social',
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
+      mock: true,
+    });
+  }
+
+  // --- MODO REAL (con Blobs) ---------------------------------------
   const payment = await getPayment(ref);
   if (!payment) {
     return ok({ valid: false, reason: 'not_found' });
