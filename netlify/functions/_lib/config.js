@@ -16,6 +16,10 @@
 
 export const MOCK_MODE = process.env.MOCK_MODE === 'true' || !process.env.MP_ACCESS_TOKEN;
 
+// Netlify inyecta NETLIFY_DEV=true cuando corre `netlify dev` local.
+// En producción de Netlify esa variable no existe.
+export const IS_LOCAL_DEV = process.env.NETLIFY_DEV === 'true';
+
 export const SITE_URL =
   process.env.SITE_URL ||
   process.env.URL || // Netlify inyecta URL automáticamente en producción

@@ -60,17 +60,24 @@ export const handler = async (event) => {
   // el frontend interceptamos para simular el flujo de éxito.
   if (MOCK_MODE) {
     console.log('[MOCK] Preference creada:', externalReference);
-    await savePayment({
-      externalReference,
-      status: 'pending',
-      amount: curso.price,
-      currency: 'ARS',
-      buyerEmail: buyerEmail || null,
-      cursoSlug,
-      mpPreferenceId: `mock_pref_${externalReference}`,
-      mpPaymentId: null,
-      createdAt: new Date().toISOString(),
-    });
+    try {
+      await savePayment({
+        externalReference,
+        status: 'pending',
+        amount: curso.price,
+        currency: 'ARS',
+        buyerEmail: buyerEmail || null,
+        cursoSlug,
+        mpPreferenceId: `mock_pref_${externalReference}`,
+        mpPaymentId: null,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('[MOCK] error guardando pago:', err);
+      return error(500, 'No se pudo iniciar el pago (mock store error)', {
+        details: err.message,
+      });
+    }
     return ok({
       preferenceId: `mock_pref_${externalReference}`,
       initPoint: `${SITE_URL}/mock-checkout?ref=${externalReference}&slug=${cursoSlug}`,

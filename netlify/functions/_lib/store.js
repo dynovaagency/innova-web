@@ -1,13 +1,13 @@
 /**
  * Persistencia de pagos.
  *
- * En producción:  Netlify Blobs (KV store gratuito de Netlify).
- * En modo mock:   archivo JSON en .netlify/mock-payments.json
+ * Estrategia por entorno:
+ *   - Local dev + mock:  archivo JSON en .netlify/mock-payments.json (filesystem)
+ *   - Producción:        Netlify Blobs (KV store)
  *
- * Por qué no un Map en memoria en modo mock: Netlify Dev inicia cada function
- * en su propio contexto/proceso, así que un Map global no se comparte entre
- * create-preference y mock-approve. El archivo JSON garantiza que todas las
- * functions lean/escriban la misma info.
+ * Por qué el filesystem solo local: Netlify Functions en producción tienen
+ * filesystem read-only (excepto /tmp que no persiste). En cambio, Blobs
+ * funciona en cualquier entorno del propio Netlify, incluso con MOCK_MODE=true.
  *
  * Estructura de un registro de pago:
  *   {
@@ -26,12 +26,15 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { MOCK_MODE } from './config.js';
+import { IS_LOCAL_DEV } from './config.js';
 
 const STORE_NAME = 'innova-payments';
 const MOCK_FILE = join(process.cwd(), '.netlify', 'mock-payments.json');
 
-// --- Filesystem storage (solo modo mock) ---------------------------
+// Solo usamos filesystem local en `netlify dev`. En producción siempre Blobs.
+const USE_LOCAL_FILE = IS_LOCAL_DEV;
+
+// --- Filesystem storage (solo local dev) ---------------------------
 async function readMockDb() {
   try {
     const raw = await readFile(MOCK_FILE, 'utf8');
@@ -53,10 +56,8 @@ async function writeMockDb(db) {
   }
 }
 
-// --- Netlify Blobs (producción) ------------------------------------
+// --- Netlify Blobs (producción y cualquier no-local) ---------------
 async function getBlobStore() {
-  // Import dinámico para que si @netlify/blobs no está instalado en dev,
-  // no rompa. Solo se resuelve cuando MOCK_MODE es false.
   const { getStore } = await import('@netlify/blobs');
   return getStore({ name: STORE_NAME, consistency: 'strong' });
 }
@@ -67,7 +68,7 @@ export async function savePayment(record) {
   if (!key) throw new Error('externalReference is required');
   const stamped = { ...record, updatedAt: new Date().toISOString() };
 
-  if (MOCK_MODE) {
+  if (USE_LOCAL_FILE) {
     const db = await readMockDb();
     db[key] = stamped;
     await writeMockDb(db);
@@ -81,7 +82,7 @@ export async function savePayment(record) {
 export async function getPayment(externalReference) {
   if (!externalReference) return null;
 
-  if (MOCK_MODE) {
+  if (USE_LOCAL_FILE) {
     const db = await readMockDb();
     return db[externalReference] || null;
   }
