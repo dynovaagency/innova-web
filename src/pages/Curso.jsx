@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, Link, Navigate } from 'react-router-dom';
 import { getCursoBySlug } from '../data/cursos.js';
 import styles from './Curso.module.css';
@@ -15,9 +15,12 @@ import styles from './Curso.module.css';
  *   3. Si no hay ref o el ref no es válido, se muestra una pantalla de bloqueo
  *      con instrucciones (pero sin exponer detalles de por qué).
  *
- * Ojo: sin backend real esto es tan seguro como el token — quien conozca un
- * ref válido puede acceder. Es el nivel de seguridad esperable en MVP.
- * Fase 2 sumará login por usuario y verificación server-side por sesión.
+ * Polling para resolver timing de MP:
+ *   MP redirige al usuario al back_url ANTES de que el webhook actualice el
+ *   status en nuestro store. Puede haber una ventana de 2-5 segundos donde
+ *   verify-payment devuelve "pending" aunque el pago ya esté aprobado.
+ *   Solución: si viene pending, hacemos polling cada 2s hasta 30s máximo.
+ *   Si sigue pending después de eso, mostramos la pantalla real de pending.
  */
 
 const STATE = {
@@ -28,6 +31,9 @@ const STATE = {
   ERROR: 'error',
 };
 
+const POLL_INTERVAL_MS = 2000;
+const POLL_MAX_ATTEMPTS = 15; // 15 x 2s = 30s máximo
+
 function Curso() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
@@ -35,47 +41,57 @@ function Curso() {
   const curso = getCursoBySlug(slug);
 
   const [state, setState] = useState(STATE.LOADING);
-  const [reason, setReason] = useState('');
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    // Si no hay curso en el catálogo, no seguimos
     if (!curso) return;
 
-    // Sin ref, denegado directo
     if (!ref) {
       setState(STATE.DENIED);
-      setReason('missing_ref');
       return;
     }
 
-    let cancelled = false;
-    (async () => {
+    cancelledRef.current = false;
+    let attempts = 0;
+
+    const verify = async () => {
       try {
         const url = `/.netlify/functions/verify-payment?ref=${encodeURIComponent(ref)}&slug=${encodeURIComponent(slug)}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('No se pudo verificar el acceso');
         const data = await res.json();
-        if (cancelled) return;
+        if (cancelledRef.current) return;
+
         if (data.valid) {
           setState(STATE.GRANTED);
-        } else if (data.reason === 'pending') {
+          return;
+        }
+
+        // Si viene pending y todavía hay intentos, seguimos polling.
+        // Esto cubre el gap entre "MP redirige" y "webhook actualiza Blobs".
+        if (data.reason === 'pending' && attempts < POLL_MAX_ATTEMPTS) {
+          attempts += 1;
+          setTimeout(verify, POLL_INTERVAL_MS);
+          return;
+        }
+
+        if (data.reason === 'pending') {
           setState(STATE.PENDING);
-          setReason('pending');
         } else {
           setState(STATE.DENIED);
-          setReason(data.reason || 'unknown');
         }
       } catch (err) {
-        if (cancelled) return;
+        if (cancelledRef.current) return;
         console.error('verify-payment error:', err);
         setState(STATE.ERROR);
       }
-    })();
+    };
 
-    return () => { cancelled = true; };
+    verify();
+
+    return () => { cancelledRef.current = true; };
   }, [ref, slug, curso]);
 
-  // Si el slug no existe en el catálogo, redirigimos al home.
   if (!curso) {
     return <Navigate to="/" replace />;
   }
