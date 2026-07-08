@@ -59,7 +59,12 @@ async function writeMockDb(db) {
 // --- Netlify Blobs (producción y cualquier no-local) ---------------
 async function getBlobStore() {
   const { getStore } = await import('@netlify/blobs');
-  return getStore({ name: STORE_NAME, consistency: 'strong' });
+  return getStore({
+    name: STORE_NAME,
+    consistency: 'strong',
+    siteID: process.env.NETLIFY_SITE_ID || process.env.SITE_ID,
+    token: process.env.NETLIFY_BLOBS_TOKEN || process.env.NETLIFY_API_TOKEN,
+  });
 }
 
 // --- API pública ---------------------------------------------------
