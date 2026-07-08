@@ -19,7 +19,7 @@
  */
 
 import { MercadoPagoConfig, Preference } from 'mercadopago';
-import { MOCK_MODE, MP_ACCESS_TOKEN, SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
+import { MOCK_MODE, MP_ACCESS_TOKEN, MP_MODE, SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
 import { savePayment } from './_lib/store.js';
 
 // Catálogo de cursos disponibles con su precio. Espejo de src/data/cursos.js
@@ -58,9 +58,6 @@ export const handler = async (event) => {
   // --- MODO MOCK ---------------------------------------------------
   // No persistimos nada. Solo generamos el ref y devolvemos la URL al mock
   // checkout. verify-payment en modo mock siempre acepta cualquier ref.
-  // Esto es intencional: mock mode es para demostrar el flujo, no para
-  // validar accesos. Cuando MOCK_MODE se desactiva con creds reales de MP,
-  // todo pasa por Blobs con persistencia real.
   if (MOCK_MODE) {
     console.log('[MOCK] Preference simulada:', externalReference);
     return ok({
@@ -80,6 +77,7 @@ export const handler = async (event) => {
     const preferenceClient = new Preference(client);
 
     const backUrls = buildBackUrls(cursoSlug, externalReference);
+    const isPublicUrl = SITE_URL.startsWith('https://');
 
     const preferenceBody = {
       items: [
@@ -93,8 +91,10 @@ export const handler = async (event) => {
       ],
       external_reference: externalReference,
       back_urls: backUrls,
-      auto_return: 'approved',
-      notification_url: `${SITE_URL}/.netlify/functions/mp-webhook`,
+      // auto_return y notification_url solo con URLs públicas —
+      // MP rechaza localhost para ambas.
+      ...(isPublicUrl && { auto_return: 'approved' }),
+      ...(isPublicUrl && { notification_url: `${SITE_URL}/.netlify/functions/mp-webhook` }),
       statement_descriptor: 'INNOVA TS',
       metadata: { cursoSlug },
       ...(buyerEmail && { payer: { email: buyerEmail } }),
@@ -116,9 +116,18 @@ export const handler = async (event) => {
       createdAt: new Date().toISOString(),
     });
 
+    // Determinar sandbox: priorizar la env var MP_MODE (explícita) y como
+    // fallback chequear el prefijo del token. MP a veces devuelve init_point
+    // de producción aunque la preferencia sea de test — hay que usar
+    // sandbox_init_point en ese caso.
+    const isSandboxToken = MP_MODE === 'sandbox' || MP_ACCESS_TOKEN.startsWith('TEST-');
+    const initPoint = isSandboxToken
+      ? (preference.sandbox_init_point || preference.init_point)
+      : preference.init_point;
+
     return ok({
       preferenceId: preference.id,
-      initPoint: preference.init_point,
+      initPoint,
       externalReference,
     });
   } catch (err) {

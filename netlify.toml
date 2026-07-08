@@ -5,11 +5,6 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  # Mientras no tengamos tokens reales de Mercado Pago, MOCK_MODE queda activo.
-  # Cuando Innova nos pase el Access Token, hay que:
-  #   1. Cargar MP_ACCESS_TOKEN en Site settings → Environment variables
-  #   2. Cambiar MOCK_MODE a "false" (o borrarlo — se desactiva solo si hay token)
-  MOCK_MODE = "true"
 
 # Functions individuales (aliases más cortos si algún día queremos)
 [functions]
