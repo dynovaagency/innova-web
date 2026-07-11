@@ -22,7 +22,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'UBA',
     imagen: imgUBA,
-    href: '#', // TODO: URL real de la revista
+    href: 'https://trabajosocial.sociales.uba.ar/revista-debate-publico-2/'
   },
   {
     id: 'laplata',
@@ -30,7 +30,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'La Plata',
     imagen: imgLaPlata,
-    href: '#',
+    href: 'https://revistas.unlp.edu.ar/escenarios',
   },
   {
     id: 'mardelplata',
@@ -38,7 +38,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'Mar del Plata',
     imagen: imgMardelPlata,
-    href: '#',
+    href: 'https://revista.salud.mdp.edu.ar/index.php/dc',
   },
   {
     id: 'unpaz',
@@ -46,7 +46,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'UNPAZ',
     imagen: imgUNPAZ,
-    href: '#',
+    href: 'https://publicaciones.unpaz.edu.ar/OJS/index.php/ts',
   },
   {
     id: 'lamatanza',
@@ -54,7 +54,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'La Matanza',
     imagen: imgLaMatanza,
-    href: '#',
+    href: 'https://rihumso.unlam.edu.ar/index.php/humanidades',
   },
   {
     id: 'lomas',
@@ -62,7 +62,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'Lomas de Zamora',
     imagen: imgLomas,
-    href: '#',
+    href: 'http://revistas.unlz.edu.ar/ojs/',
   },
 ];
 
