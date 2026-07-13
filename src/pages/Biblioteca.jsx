@@ -8,6 +8,10 @@ import imgMardelPlata from '../assets/biblioteca/mardelplata.jpg';
 import imgUNPAZ from '../assets/biblioteca/unpaz.jpg';
 import imgLaMatanza from '../assets/biblioteca/lamatanza.jpg';
 import imgLomas from '../assets/biblioteca/lomas.jpg';
+import imgCordoba from '../assets/biblioteca/cordoba.jpg';
+import imgUNICEN from '../assets/biblioteca/unicen.jpg';
+import imgAmnistia from '../assets/biblioteca/amnistia.png';
+import imgClacso from '../assets/biblioteca/clacso.png';
 
 /**
  * Biblioteca Abierta — directorio de revistas académicas y portales
@@ -22,7 +26,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'UBA',
     imagen: imgUBA,
-    href: '#', // TODO: URL real de la revista
+    href: 'https://trabajosocial.sociales.uba.ar/revista-debate-publico-2/'
   },
   {
     id: 'laplata',
@@ -30,7 +34,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'La Plata',
     imagen: imgLaPlata,
-    href: '#',
+    href: 'https://revistas.unlp.edu.ar/escenarios',
   },
   {
     id: 'mardelplata',
@@ -38,7 +42,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'Mar del Plata',
     imagen: imgMardelPlata,
-    href: '#',
+    href: 'https://revista.salud.mdp.edu.ar/index.php/dc',
   },
   {
     id: 'unpaz',
@@ -46,7 +50,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'UNPAZ',
     imagen: imgUNPAZ,
-    href: '#',
+    href: 'https://publicaciones.unpaz.edu.ar/OJS/index.php/ts',
   },
   {
     id: 'lamatanza',
@@ -54,7 +58,7 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'La Matanza',
     imagen: imgLaMatanza,
-    href: '#',
+    href: 'https://rihumso.unlam.edu.ar/index.php/humanidades',
   },
   {
     id: 'lomas',
@@ -62,7 +66,39 @@ const recursos = [
     tipo: 'REVISTA',
     nombre: 'Lomas de Zamora',
     imagen: imgLomas,
-    href: '#',
+    href: 'http://revistas.unlz.edu.ar/ojs/',
+  },
+  {
+    id: 'cordoba',
+    categoria: 'Revistas - Argentina',
+    tipo: 'REVISTA',
+    nombre: 'Córdoba',
+    imagen: imgCordoba,
+    href: 'https://sociales.unc.edu.ar/content/revista-concienciasocial',
+  },
+  {
+    id: 'unicen',
+    categoria: 'Revistas - Argentina',
+    tipo: 'REVISTA',
+    nombre: 'UNICEN',
+    imagen: imgUNICEN,
+    href: 'https://ojs2.fch.unicen.edu.ar/ojs-3.1.0/index.php/plaza-publica/issue/archive',
+  },
+  {
+    id: 'amnistia',
+    categoria: 'Revistas - Argentina',
+    tipo: 'REVISTA',
+    nombre: 'Amnistia',
+    imagen: imgAmnistia,
+    href: 'https://amnistia.org.ar/buscar?busqueda=Biblioteca%20',
+  },
+  {
+    id: 'clacso',
+    categoria: 'Revistas - Argentina',
+    tipo: 'REVISTA',
+    nombre: 'CLACSO',
+    imagen: imgClacso,
+    href: 'https://www.clacso.org/publicaciones/',
   },
 ];
 

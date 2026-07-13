@@ -43,6 +43,8 @@ const ICONS = {
   ),
 };
 
+const MAILTO_AGENDA = 'mailto:secretariainnova@trabajosocial.ar?subject=Consulta%20-%20Agenda%20de%20sesi%C3%B3n&body=Hola%2C%20quisiera%20agendar%20una%20pr%C3%B3xima%20sesi%C3%B3n.';
+
 const tabs = {
   supervision: {
     label: 'Supervisión Profesional',
@@ -138,7 +140,7 @@ function Servicios() {
         <aside className={styles.sidebar}>
           <h3 className={styles.sidebarHeading}>{data.sidebar.heading}</h3>
           <p className={styles.sidebarDescription}>{data.sidebar.description}</p>
-          <button type="button" className={styles.ctaBtn}>{data.sidebar.cta}</button>
+          <a href={MAILTO_AGENDA} className={styles.ctaBtn}>{data.sidebar.cta}</a>
 
           <div className={styles.detailsSection}>
             <h4 className={styles.detailsTitle}>Detalles del Encuentro</h4>

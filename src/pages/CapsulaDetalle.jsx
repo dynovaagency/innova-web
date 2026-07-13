@@ -120,7 +120,7 @@ function CapsulaDetalle() {
           <div className={styles.priceBlock}>
             <div className={styles.priceLine}>
               <span className={styles.priceCurrency}>$</span>
-              <span className={styles.priceAmount}>--</span>
+              <span className={styles.priceAmount}>28.000</span>
               <span className={styles.priceUnit}>ARS</span>
             </div>
             <p className={styles.priceNote}>Valor promocional (A consultar)</p>
