@@ -24,6 +24,7 @@
         "npm:react-dom@19",
         "npm:react-router-dom@^7.1.1",
         "npm:react@19",
+        "npm:resend@^6.17.2",
         "npm:vite@^6.0.7"
       ]
     }
