@@ -27,7 +27,7 @@ import { savePayment } from './_lib/store.js';
 const CATALOGO = {
   'vulnerabilidad-social': {
     title: 'Vulnerabilidad Social y Acumulación de Desventajas',
-    price: 10,
+    price: 1,
   },
 };
 
