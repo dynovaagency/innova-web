@@ -103,3 +103,24 @@ export async function updatePaymentStatus(externalReference, updates) {
   await savePayment(updated);
   return updated;
 }
+
+/**
+ * Devuelve TODOS los registros de pago (filesystem local o Blobs prod).
+ *
+ * Uso previsto: búsquedas por atributo (ej. buyerEmail) donde no hay índice
+ * secundario. Para el volumen del MVP (decenas/cientos de registros) es
+ * aceptable. Cuando escale, migrar a una DB con índices.
+ */
+export async function listPayments() {
+  if (USE_LOCAL_FILE) {
+    const db = await readMockDb();
+    return Object.values(db);
+  }
+
+  const store = await getBlobStore();
+  const { blobs } = await store.list();
+  const records = await Promise.all(
+    blobs.map((b) => store.get(b.key, { type: 'json' }))
+  );
+  return records.filter(Boolean);
+}

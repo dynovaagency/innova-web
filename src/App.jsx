@@ -13,6 +13,7 @@ import Curso from './pages/Curso.jsx';
 import PagoPendiente from './pages/PagoPendiente.jsx';
 import PagoFallido from './pages/PagoFallido.jsx';
 import MockCheckout from './pages/MockCheckout.jsx';
+import RecuperarAcceso from './pages/RecuperarAcceso.jsx';
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/pago-pendiente" element={<PagoPendiente />} />
         <Route path="/pago-fallido" element={<PagoFallido />} />
         <Route path="/mock-checkout" element={<MockCheckout />} />
+        <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
       </Route>
     </Routes>
   );

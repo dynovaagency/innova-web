@@ -27,7 +27,10 @@ function PagoPendiente() {
         </p>
         <p className={styles.description}>
           Vamos a enviarte un email cuando el pago esté acreditado, con el link para
-          acceder a la cápsula.
+          acceder a la cápsula. Si no lo encontrás, podés recuperarlo desde{' '}
+          <Link to="/recuperar-acceso" className={styles.link}>
+            esta página
+          </Link>.
         </p>
         {ref && (
           <p className={styles.reference}>

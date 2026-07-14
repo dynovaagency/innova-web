@@ -93,6 +93,10 @@ function Footer() {
       </div>
       <div className={styles.copy}>
         <span>&copy; {year} Innova Trabajo Social. Todos los derechos reservados.</span>
+        <span className={styles.copySep} aria-hidden="true">·</span>
+        <Link to="/recuperar-acceso" className={styles.copyLink}>
+          ¿Perdiste el acceso a tu cápsula?
+        </Link>
       </div>
     </footer>
   );

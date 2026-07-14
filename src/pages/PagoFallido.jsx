@@ -32,6 +32,12 @@ function PagoFallido() {
           </a>{' '}
           y te ayudamos.
         </p>
+        <p className={styles.description}>
+          Si tu pago igual se procesó, podés recuperar el acceso a la cápsula desde{' '}
+          <Link to="/recuperar-acceso" className={styles.link}>
+            esta página
+          </Link>.
+        </p>
         {ref && (
           <p className={styles.reference}>
             Referencia de tu intento: <code>{ref}</code>

@@ -17,6 +17,14 @@
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { MOCK_MODE, MP_ACCESS_TOKEN, ok, error, preflight } from './_lib/config.js';
 import { updatePaymentStatus, getPayment } from './_lib/store.js';
+import { sendAccessEmail } from './_lib/email.js'; // [NUEVO]
+
+// [NUEVO] Espejo del catálogo en create-preference.js. Solo lo usamos para
+// resolver el título del curso al armar el asunto/cuerpo del mail.
+// Mantener sincronizado con src/data/cursos.js y con create-preference.js.
+const CATALOGO_TITLES = {
+  'vulnerabilidad-social': 'Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida',
+};
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -88,6 +96,42 @@ export const handler = async (event) => {
     });
 
     console.log('[webhook] pago actualizado:', { externalReference, status: mappedStatus });
+
+    // [NUEVO] Disparo del mail de acceso.
+    // Idempotencia: MP puede reintentar el webhook varias veces para el mismo
+    // pago. Antes de mandar, chequeamos que:
+    //   1. el pago quedó approved,
+    //   2. existe un email de comprador,
+    //   3. no se envió antes (existing.emailSentAt es null/undefined).
+    // El chequeo usa el estado ANTERIOR (existing.status !== 'approved') como
+    // señal de "primera vez que llegamos a approved en este flujo".
+    if (
+      mappedStatus === 'approved' &&
+      existing.buyerEmail &&
+      !existing.emailSentAt &&
+      existing.status !== 'approved'
+    ) {
+      const cursoTitle = CATALOGO_TITLES[existing.cursoSlug] || existing.cursoSlug;
+      const result = await sendAccessEmail({
+        to: existing.buyerEmail,
+        cursoTitle,
+        cursoSlug: existing.cursoSlug,
+        externalReference,
+      });
+
+      if (result.sent) {
+        // Marca de envío exitoso para no reenviar en reintentos del webhook.
+        await updatePaymentStatus(externalReference, {
+          emailSentAt: new Date().toISOString(),
+          emailId: result.id || null,
+        });
+      } else {
+        // Si falla el mail, no bloqueamos el flujo — el usuario ya tiene el
+        // redirect de MP y puede recuperar el acceso desde /recuperar-acceso.
+        console.warn('[webhook] mail no enviado:', result.error);
+      }
+    }
+
     return ok({ processed: true, externalReference, status: mappedStatus });
   } catch (err) {
     console.error('[webhook] error:', err);

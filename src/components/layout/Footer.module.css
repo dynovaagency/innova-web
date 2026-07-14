@@ -71,4 +71,24 @@
   font-size: var(--font-size-xs);
   opacity: 0.7;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.copySep {
+  opacity: 0.5;
+}
+
+.copyLink {
+  color: var(--color-text-inverse);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity var(--transition-fast);
+}
+
+.copyLink:hover {
+  opacity: 0.8;
 }
