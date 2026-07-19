@@ -22,7 +22,8 @@ export const IS_LOCAL_DEV = process.env.NETLIFY_DEV === 'true';
 
 export const SITE_URL =
   process.env.SITE_URL ||
-  process.env.URL || // Netlify inyecta URL automáticamente en producción
+  process.env.DEPLOY_PRIME_URL || // URL del contexto actual (branch, preview, o producción)
+  process.env.URL || // Fallback a la URL principal del sitio
   'http://localhost:8888';
 
 export const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || '';
