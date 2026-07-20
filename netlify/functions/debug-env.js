@@ -14,6 +14,10 @@ export const handler = async () => {
       BRANCH: process.env.BRANCH,
       DEPLOY_PRIME_URL: process.env.DEPLOY_PRIME_URL,
       URL: process.env.URL,
+      SITE_URL_raw: process.env.SITE_URL,
+      SITE_URL_type: typeof process.env.SITE_URL,
+      SITE_URL_length: process.env.SITE_URL?.length,
+      MOCK_MODE: process.env.MOCK_MODE,
     }, null, 2),
   };
 };
