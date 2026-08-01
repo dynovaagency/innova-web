@@ -14,28 +14,14 @@
  *     externalReference: "inv_..."
  *   }
  *
- * Refactor de Entrega 3: la lógica de MP se movió al provider. Este handler
- * ya no habla directo con MercadoPago; le delega la creación del checkout.
- * Cuando sumemos más providers, este mismo handler se puede parametrizar
- * (ej. via query string `?provider=paypal`) sin reescribirlo entero.
+ * Refactor Entrega 4: elimina el CATALOGO local; consume products via
+ * productsRepo. La fuente de verdad del catálogo pasa a ser Netlify Blobs.
  */
 
 import { SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
 import { getProvider } from './_lib/providers/payment/index.js';
 import { savePayment } from './_lib/store.js';
-
-// Catálogo mínimo local. Se elimina en Entrega 4 cuando pasemos a leer del blob
-// via productsRepo.findBySlug(). Por ahora lo mantenemos para no tocar el
-// flujo completo en una sola entrega.
-const CATALOGO = {
-  'vulnerabilidad-social': {
-    slug: 'vulnerabilidad-social',
-    type: 'capsula_genially',
-    title: 'Vulnerabilidad Social y Acumulación de Desventajas',
-    price: 28000,
-    currency: 'ARS',
-  },
-};
+import * as productsRepo from './_lib/repositories/products.js';
 
 const generateExternalReference = () => {
   return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -54,11 +40,17 @@ export const handler = async (event) => {
 
   const { cursoSlug, buyerEmail } = payload;
 
-  if (!cursoSlug || !CATALOGO[cursoSlug]) {
-    return error(400, 'cursoSlug inválido o no está en el catálogo', { cursoSlug });
+  if (!cursoSlug) {
+    return error(400, 'cursoSlug es requerido');
   }
 
-  const product = CATALOGO[cursoSlug];
+  // Consulta el producto en el blob. Si no existe o está inactivo, no
+  // se puede iniciar checkout.
+  const product = await productsRepo.findBySlug(cursoSlug, { activeOnly: true });
+  if (!product) {
+    return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
+  }
+
   const externalReference = generateExternalReference();
 
   try {
@@ -76,8 +68,6 @@ export const handler = async (event) => {
       notificationUrl,
     });
 
-    // Guardamos el pago con status pending. El webhook lo actualiza cuando
-    // el provider confirma la acreditación.
     await savePayment({
       externalReference,
       status: 'pending',
@@ -85,11 +75,10 @@ export const handler = async (event) => {
       currency: product.currency || 'ARS',
       buyerEmail: buyerEmail || null,
       cursoSlug,
+      productTitle: product.title,   // ← snapshot del title al momento de la compra
       provider: provider.name,
       providerReference,
       providerMetadata: metadata,
-      // Mantenemos alias legacy para no romper mp-webhook.js hasta el
-      // refactor completo (Entrega 4).
       mpPreferenceId: metadata?.mpPreferenceId || providerReference,
       mpPaymentId: null,
       createdAt: new Date().toISOString(),

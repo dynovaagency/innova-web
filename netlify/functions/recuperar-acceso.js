@@ -15,22 +15,15 @@
  *     muestre mensaje amigable.
  *   - En el frontend usamos un mensaje neutro cuando no hay resultados: no
  *     confirmamos si el email existe o no, para no filtrar quién compró qué.
- *   - Buscamos por match exacto (case-insensitive) del buyerEmail contra los
- *     registros con status 'approved'. Descartamos pending y rejected.
+ *
+ * Refactor Entrega 4: elimina CATALOGO_TITLES local; usa paymentsRepo
+ * (con normalización de email en el propio repo) y el helper compartido
+ * de resolución de títulos.
  */
 
 import { SITE_URL, ok, error, preflight } from './_lib/config.js';
-import { listPayments } from './_lib/store.js';
-
-// Espejo del catálogo de títulos (idéntico al de mp-webhook.js).
-// TODO: cuando llegue Fase 2, mover a un módulo compartido / DB.
-const CATALOGO_TITLES = {
-  'vulnerabilidad-social': 'Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida',
-};
-
-function normalizeEmail(email) {
-  return String(email || '').trim().toLowerCase();
-}
+import * as paymentsRepo from './_lib/repositories/payments.js';
+import { resolveProductTitlesBulk } from './_lib/products/title-resolver.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -43,18 +36,14 @@ export const handler = async (event) => {
     return error(400, 'Invalid JSON body');
   }
 
-  const email = normalizeEmail(payload.email);
-  if (!email || !email.includes('@')) {
+  const emailRaw = payload.email;
+  if (!emailRaw || typeof emailRaw !== 'string' || !emailRaw.includes('@')) {
     return error(400, 'Email inválido');
   }
 
   try {
-    const all = await listPayments();
-    const matches = all.filter(
-      (p) =>
-        p.status === 'approved' &&
-        normalizeEmail(p.buyerEmail) === email
-    );
+    // El repo normaliza el email (trim + lowercase) internamente.
+    const matches = await paymentsRepo.findApprovedByEmail(emailRaw);
 
     if (matches.length === 0) {
       return ok({ found: false });
@@ -70,9 +59,14 @@ export const handler = async (event) => {
       }
     }
 
-    const cursos = Array.from(bySlug.values()).map((p) => ({
+    const deduped = Array.from(bySlug.values());
+
+    // Resolver títulos en bulk (aprovecha cache local del helper).
+    const titles = await resolveProductTitlesBulk(deduped);
+
+    const cursos = deduped.map((p) => ({
       slug: p.cursoSlug,
-      title: CATALOGO_TITLES[p.cursoSlug] || p.cursoSlug,
+      title: titles.get(p.externalReference),
       link: `${SITE_URL}/curso/${p.cursoSlug}?ref=${p.externalReference}`,
       approvedAt: p.approvedAt,
     }));

@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import PaymentModal from '../components/ui/PaymentModal.jsx';
+import { useProduct } from '../hooks/useProduct.js';
 import styles from './CapsulaDetalle.module.css';
+
+const DEFAULT_SLUG = 'vulnerabilidad-social';
 
 const detalles = [
   {
@@ -66,8 +69,26 @@ const ICONS = {
   ),
 };
 
+/**
+ * Formatea un precio numérico ARS a string estilo "$ 28.000".
+ * Usa Intl.NumberFormat para respetar separador de miles argentino.
+ */
+const formatPriceARS = (amount) => {
+  const nf = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  return `$ ${nf.format(amount)}`;
+};
+
 function CapsulaDetalle() {
   const [paymentOpen, setPaymentOpen] = useState(false);
+
+  // Por ahora la ruta actual sirve solo la cápsula de vulnerabilidad-social,
+  // hardcodeada. Cuando existan varias cápsulas Genially, esta página va a
+  // recibir el slug por params (Etapa 3), y este DEFAULT_SLUG se elimina.
+  const slug = DEFAULT_SLUG;
+  const { product, loading, error } = useProduct(slug);
 
   return (
     <div className={styles.page}>
@@ -87,7 +108,7 @@ function CapsulaDetalle() {
             DESTACADO DEL MES
           </span>
           <h1 className={styles.headerTitle}>
-            Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida
+            {product?.title || 'Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida'}
           </h1>
         </div>
       </header>
@@ -120,8 +141,10 @@ function CapsulaDetalle() {
           <div className={styles.priceBlock}>
             <div className={styles.priceLine}>
               <span className={styles.priceCurrency}>$</span>
-              <span className={styles.priceAmount}>28.000</span>
-              <span className={styles.priceUnit}>ARS</span>
+              <span className={styles.priceAmount}>
+                {product ? new Intl.NumberFormat('es-AR').format(product.price) : '28.000'}
+              </span>
+              <span className={styles.priceUnit}>{product?.currency || 'ARS'}</span>
             </div>
             <p className={styles.priceNote}>Valor promocional (A consultar)</p>
           </div>
@@ -130,8 +153,9 @@ function CapsulaDetalle() {
             type="button"
             className={styles.ctaBtn}
             onClick={() => setPaymentOpen(true)}
+            disabled={loading || !!error}
           >
-            ¡INSCRIBITE AHORA!
+            {loading ? 'CARGANDO…' : '¡INSCRIBITE AHORA!'}
           </button>
 
           <div className={styles.detailsSection}>
@@ -155,15 +179,19 @@ function CapsulaDetalle() {
         </aside>
       </div>
 
-      <PaymentModal
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        product={{
-          slug: 'vulnerabilidad-social',
-          title: 'Cápsula: Vulnerabilidad Social',
-          price: '$ 28.000',
-        }}
-      />
+      {product && (
+        <PaymentModal
+          open={paymentOpen}
+          onClose={() => setPaymentOpen(false)}
+          product={{
+            slug: product.slug,
+            title: product.title,
+            price: product.price,
+            currency: product.currency || 'ARS',
+            priceFormatted: formatPriceARS(product.price),
+          }}
+        />
+      )}
     </div>
   );
 }

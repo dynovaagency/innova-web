@@ -5,25 +5,29 @@ import styles from './PaymentModal.module.css';
 /**
  * Modal "Confirmá tu inscripción".
  *
- * MVP con backend mínimo:
- *   1. Al confirmar, pega POST a /.netlify/functions/create-preference con
- *      el slug del curso.
- *   2. Recibe { initPoint, externalReference } y redirige al usuario a MP.
- *   3. MP procesa el pago y redirige a /curso/:slug?ref=... o /pago-pendiente
- *      o /pago-fallido, según el estado.
- *   4. La página del curso verifica el ref contra /verify-payment antes de
- *      mostrar el iframe.
+ * Al confirmar:
+ *   1. POST a /.netlify/functions/create-preference con el slug del curso.
+ *   2. Recibe { initPoint, externalReference } y redirige al usuario a MP
+ *      (o a /mock-checkout en modo mock).
+ *   3. MP procesa el pago y redirige según estado.
  *
- * Modo mock: si el backend responde con { mock: true }, en vez de redirigir
- * a MP redirige a /mock-checkout, una pantalla local que simula el pago.
+ * Refactor Entrega 4:
+ *   - Ya no hardcodea el precio. Lo recibe via props.priceFormatted (string
+ *     con formato "$ 28.000") desde el componente que consumió el catálogo.
+ *   - El slug también viene de props, defaultea a vulnerabilidad-social solo
+ *     como fallback defensivo.
  *
  * Props:
  *   - open: boolean
  *   - onClose: () => void
- *   - product: { slug, title, price }
+ *   - product: {
+ *       slug: string,
+ *       title: string,
+ *       price: number,
+ *       currency: string,
+ *       priceFormatted: string  // "$ 28.000" ya listo para mostrar
+ *     }
  */
-
-const CAPSULA_PRICE = '$ 28.000';
 
 function PaymentModal({ open, onClose, product }) {
   const [loading, setLoading] = useState(false);
@@ -45,7 +49,6 @@ function PaymentModal({ open, onClose, product }) {
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  // Reset del estado interno al cerrar
   useEffect(() => {
     if (!open) {
       setErrorMsg('');
@@ -78,7 +81,6 @@ function PaymentModal({ open, onClose, product }) {
         throw new Error('Respuesta inválida del servidor');
       }
 
-      // Redirigimos al Checkout Pro de MP (o al mock en desarrollo)
       window.location.href = data.initPoint;
     } catch (err) {
       console.error('Error al crear preferencia:', err);
@@ -86,6 +88,14 @@ function PaymentModal({ open, onClose, product }) {
       setLoading(false);
     }
   };
+
+  // Precio a mostrar: si el prop está bien formateado, lo usamos.
+  // Si no, hacemos un formateo de emergencia (protección defensiva).
+  const displayPrice = product?.priceFormatted
+    ? product.priceFormatted
+    : (product?.price
+        ? `$ ${new Intl.NumberFormat('es-AR').format(product.price)}`
+        : '$ 28.000');
 
   return (
     <div className={styles.backdrop} onClick={loading ? undefined : onClose} role="presentation">
@@ -103,7 +113,7 @@ function PaymentModal({ open, onClose, product }) {
             <p className={styles.subtitle}>
               {product?.title ? `Estás por inscribirte a ${product.title}.` : 'Estás por inscribirte a esta cápsula.'}
               <br />
-              <strong>Total: {CAPSULA_PRICE}</strong>
+              <strong>Total: {displayPrice}</strong>
             </p>
           </div>
           <button
