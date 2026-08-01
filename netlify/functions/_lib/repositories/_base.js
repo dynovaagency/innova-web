@@ -14,14 +14,19 @@
 
 import { getStore } from '@netlify/blobs';
 import { IS_LOCAL_DEV } from '../config.js';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 // Path del "store" local para desarrollo con netlify dev.
-// Cada namespace tiene su propio archivo JSON.
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOCAL_DB_DIR = path.resolve(__dirname, '../../.mock-db');
+// Se calcula lazy (solo cuando se necesita) para evitar que el bundler de
+// Netlify Functions rompa por import.meta.url siendo undefined en runtime.
+let _localDbDir = null;
+const getLocalDbDir = async () => {
+  if (_localDbDir) return _localDbDir;
+  const { fileURLToPath } = await import('node:url');
+  const path = await import('node:path');
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  _localDbDir = path.resolve(__dirname, '../../.mock-db');
+  return _localDbDir;
+};
 
 /**
  * Cliente de store para un namespace. Devuelve un objeto con métodos
@@ -53,7 +58,6 @@ const netlifyBlobsClient = (namespace) => {
       await store.delete(key);
     },
     async list() {
-      // Netlify Blobs devuelve { blobs: [{ key, ... }] }.
       const { blobs } = await store.list();
       const items = await Promise.all(
         blobs.map(async (b) => await store.get(b.key, { type: 'json' }))
@@ -76,9 +80,11 @@ const netlifyBlobsClient = (namespace) => {
  * permite iterar sin depender de una cuenta de Netlify en cada corrida.
  */
 const localFilesystemClient = (namespace) => {
-  const filePath = path.join(LOCAL_DB_DIR, `${namespace}.json`);
-
   const readAll = async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const dbDir = await getLocalDbDir();
+    const filePath = path.join(dbDir, `${namespace}.json`);
     try {
       const raw = await fs.readFile(filePath, 'utf-8');
       return JSON.parse(raw);
@@ -89,7 +95,11 @@ const localFilesystemClient = (namespace) => {
   };
 
   const writeAll = async (data) => {
-    await fs.mkdir(LOCAL_DB_DIR, { recursive: true });
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const dbDir = await getLocalDbDir();
+    const filePath = path.join(dbDir, `${namespace}.json`);
+    await fs.mkdir(dbDir, { recursive: true });
     await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
   };
 
