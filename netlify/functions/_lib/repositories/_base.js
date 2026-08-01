@@ -2,22 +2,17 @@
  * Helpers compartidos entre repositorios.
  *
  * Cada repo tiene un "namespace" (equivalente a una tabla en SQL) que se usa
- * como prefijo/store name en Netlify Blobs. Ejemplo:
- *   - admins → getStore('admins')
- *   - payments → getStore('payments')
+ * como prefijo/store name en Netlify Blobs.
  *
  * En Fase 3 (Aiven Postgres), este archivo se reemplaza por un cliente SQL
  * compartido (pg pool) y los repos pasan a hacer queries en vez de get/set
- * en blobs. La interfaz pública de cada repo NO cambia — por eso las
- * functions no necesitan tocarse.
+ * en blobs.
  */
 
 import { getStore } from '@netlify/blobs';
 import { IS_LOCAL_DEV } from '../config.js';
 
 // Path del "store" local para desarrollo con netlify dev.
-// Se calcula lazy (solo cuando se necesita) para evitar que el bundler de
-// Netlify Functions rompa por import.meta.url siendo undefined en runtime.
 let _localDbDir = null;
 const getLocalDbDir = async () => {
   if (_localDbDir) return _localDbDir;
@@ -29,11 +24,28 @@ const getLocalDbDir = async () => {
 };
 
 /**
- * Cliente de store para un namespace. Devuelve un objeto con métodos
- * uniformes independientemente de si corre en Netlify o en local.
+ * Construye las opciones de conexión a Blobs.
  *
- * @param {string} namespace - ej: 'admins', 'payments', 'products', 'sessions'
+ * Netlify normalmente auto-inyecta siteID y token en runtime, pero en algunos
+ * escenarios (bundling con esbuild, deploys con cierta config) ese auto-inject
+ * falla con MissingBlobsEnvironmentError. Como workaround pasamos esos valores
+ * explícitos leyendo de env vars que sí llegan al runtime.
+ *
+ * Ver:
+ *   https://github.com/netlify/blobs/issues/175
+ *   https://answers.netlify.com/t/missingblobsenvironmenterror-in-production-despite-following-documentation/156201
  */
+const buildBlobsOptions = () => {
+  const options = {};
+  if (process.env.NETLIFY_SITE_ID) {
+    options.siteID = process.env.NETLIFY_SITE_ID;
+  }
+  if (process.env.NETLIFY_BLOBS_TOKEN) {
+    options.token = process.env.NETLIFY_BLOBS_TOKEN;
+  }
+  return options;
+};
+
 export const storeClient = (namespace) => {
   if (IS_LOCAL_DEV) {
     return localFilesystemClient(namespace);
@@ -41,11 +53,15 @@ export const storeClient = (namespace) => {
   return netlifyBlobsClient(namespace);
 };
 
-/**
- * Cliente para producción: usa Netlify Blobs.
- */
 const netlifyBlobsClient = (namespace) => {
-  const store = getStore(namespace);
+  const options = buildBlobsOptions();
+  // Si tenemos siteID y token, pasar el objeto explícito; si no, dejar que
+  // Netlify use su auto-inject (funciona en la mayoría de los casos).
+  const store =
+    options.siteID && options.token
+      ? getStore({ name: namespace, ...options })
+      : getStore(namespace);
+
   return {
     async get(key) {
       const raw = await store.get(key, { type: 'json' });
@@ -71,14 +87,6 @@ const netlifyBlobsClient = (namespace) => {
   };
 };
 
-/**
- * Cliente para desarrollo local: usa filesystem JSON.
- * Cada namespace es un archivo `.mock-db/<namespace>.json` con un objeto
- * { key: value, ... }.
- *
- * En local, netlify dev NO expone Blobs por default, así que este fallback
- * permite iterar sin depender de una cuenta de Netlify en cada corrida.
- */
 const localFilesystemClient = (namespace) => {
   const readAll = async () => {
     const fs = await import('node:fs/promises');
@@ -129,18 +137,10 @@ const localFilesystemClient = (namespace) => {
   };
 };
 
-/**
- * Genera un ID único con formato `<prefix>_<timestamp>_<random>`.
- * Estilo consistente con lo que ya se usa para externalReference.
- */
 export const generateId = (prefix) => {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
-/**
- * Normaliza un email para comparación case-insensitive y sin espacios.
- * Se usa como key en los repos que indexan por email.
- */
 export const normalizeEmail = (email) => {
   if (typeof email !== 'string') return null;
   return email.trim().toLowerCase();
