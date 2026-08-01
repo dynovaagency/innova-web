@@ -1,56 +1,39 @@
 /**
  * Repositorio de pagos.
  *
- * Un payment tiene la estructura documentada en el sistema V1.0 más
- * campos derivados del provider (mp*, y en el futuro paypal*, payway*, etc.).
+ * Ver documentación completa en la definición original (Entrega 2).
  *
- * Migra la lógica que hoy vive dispersa en:
- *   - store.js (helpers savePayment / getPayment / updatePaymentStatus / listPayments).
- *   - recuperar-acceso.js (iteración manual y filtrado por email).
- *
- * La interfaz pública está pensada como si fuera una tabla SQL: findByX,
- * insert, update. Cuando migremos a Postgres, esta interfaz no cambia.
+ * Refactor: store lazy para evitar MissingBlobsEnvironmentError al import.
  */
 
 import { storeClient, normalizeEmail } from './_base.js';
 
-const store = storeClient('payments');
+let _store = null;
+const getStore = () => {
+  if (!_store) _store = storeClient('payments');
+  return _store;
+};
 
-/**
- * Inserta un pago nuevo. El caller define externalReference como PK.
- */
 export const insert = async (payment) => {
   if (!payment.externalReference) {
     throw new Error('payment.externalReference es requerido');
   }
-  await store.set(payment.externalReference, {
+  await getStore().set(payment.externalReference, {
     ...payment,
     updatedAt: new Date().toISOString(),
   });
   return payment;
 };
 
-/**
- * Busca por externalReference (PK).
- */
 export const findByReference = async (externalReference) => {
   if (!externalReference) return null;
-  return await store.get(externalReference);
+  return await getStore().get(externalReference);
 };
 
-/**
- * Busca todos los pagos aprobados de un email dado. Case-insensitive.
- * Ordenados por createdAt descendente.
- *
- * Se usa en recuperar-acceso.js.
- *
- * NOTA: escanea todos los pagos. Aceptable para el volumen actual (MVP).
- * En Fase 3 con Postgres, esto es un SELECT con índice en (buyer_email, status).
- */
 export const findApprovedByEmail = async (email) => {
   const normalized = normalizeEmail(email);
   if (!normalized) return [];
-  const all = await store.list();
+  const all = await getStore().list();
   return all
     .filter(
       (p) =>
@@ -60,12 +43,8 @@ export const findApprovedByEmail = async (email) => {
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
 
-/**
- * Actualiza el estado y metadata de un pago.
- * Merge con lo existente; los campos no incluidos en `patch` quedan intactos.
- */
 export const updateStatus = async (externalReference, patch) => {
-  const existing = await store.get(externalReference);
+  const existing = await getStore().get(externalReference);
   if (!existing) {
     throw new Error(`Payment no encontrado: ${externalReference}`);
   }
@@ -74,21 +53,17 @@ export const updateStatus = async (externalReference, patch) => {
     ...patch,
     updatedAt: new Date().toISOString(),
   };
-  await store.set(externalReference, updated);
+  await getStore().set(externalReference, updated);
   return updated;
 };
 
-/**
- * Lista todos los pagos con filtros opcionales.
- * Para el panel admin (Sprint 2).
- */
 export const findAll = async ({
   status = null,
   cursoSlug = null,
   fromDate = null,
   toDate = null,
 } = {}) => {
-  let all = await store.list();
+  let all = await getStore().list();
   if (status) all = all.filter((p) => p.status === status);
   if (cursoSlug) all = all.filter((p) => p.cursoSlug === cursoSlug);
   if (fromDate) all = all.filter((p) => new Date(p.createdAt) >= new Date(fromDate));

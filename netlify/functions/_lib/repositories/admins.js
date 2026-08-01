@@ -19,15 +19,9 @@
 
 import { storeClient, normalizeEmail } from './_base.js';
 
-/**
- * Whitelist inicial de admins. Editar este array para sumar/quitar
- * admins mientras no exista panel de gestión.
- *
- * IMPORTANTE: los emails van normalizados (lowercase, sin espacios).
- */
 const INITIAL_ADMINS = [
   {
-    email: 'felix@gmail.com',
+    email: 'felixdoura@gmail.com',
     name: 'Felix Doura',
     role: 'superadmin',
   },
@@ -38,22 +32,20 @@ const INITIAL_ADMINS = [
   // { email: 'jesica@...', name: 'Jesica ...', role: 'admin' },
 ];
 
-const store = storeClient('admins');
+// Store lazy — se instancia la primera vez que se necesita.
+let _store = null;
+const getStore = () => {
+  if (!_store) _store = storeClient('admins');
+  return _store;
+};
 
-/**
- * Busca un admin por email (case-insensitive).
- * Si no existe en el store pero está en INITIAL_ADMINS, lo autopoblará.
- * Devuelve null si no está autorizado.
- */
 export const findByEmail = async (email) => {
   const normalized = normalizeEmail(email);
   if (!normalized) return null;
 
-  // 1. Buscar en el store.
-  const stored = await store.get(normalized);
+  const stored = await getStore().get(normalized);
   if (stored && stored.active !== false) return stored;
 
-  // 2. Si no está en el store, buscar en la whitelist inicial y autopoblar.
   const fromInitial = INITIAL_ADMINS.find((a) => normalizeEmail(a.email) === normalized);
   if (fromInitial) {
     const admin = {
@@ -64,26 +56,19 @@ export const findByEmail = async (email) => {
       createdAt: new Date().toISOString(),
       source: 'initial_whitelist',
     };
-    await store.set(normalized, admin);
+    await getStore().set(normalized, admin);
     return admin;
   }
 
   return null;
 };
 
-/**
- * Lista todos los admins. Para el panel admin (Sprint 2).
- */
 export const findAll = async ({ activeOnly = true } = {}) => {
-  const all = await store.list();
+  const all = await getStore().list();
   if (activeOnly) return all.filter((a) => a.active !== false);
   return all;
 };
 
-/**
- * Devuelve true si el email es admin válido y activo.
- * Wrapper conveniente para el middleware de auth.
- */
 export const isAuthorized = async (email) => {
   const admin = await findByEmail(email);
   return admin !== null;
