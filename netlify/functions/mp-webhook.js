@@ -1,29 +1,48 @@
 /**
  * POST /.netlify/functions/mp-webhook
  *
- * Notificación asíncrona de Mercado Pago cuando cambia el estado de un pago.
- * MP envía un POST con: { type: "payment", data: { id: "12345" } }
+ * Notificación asíncrona de MercadoPago cuando cambia el estado de un pago.
+ * MP envía un POST con: { type: "payment", data: { id: "12345" } }.
  *
  * Nuestro trabajo:
- *   1. Consultar la API de MP para obtener el detalle del pago.
- *   2. Extraer el external_reference (nuestro token).
- *   3. Actualizar el registro en Blobs con el nuevo estado.
+ *   1. Parsear el webhook (delegado al provider).
+ *   2. Consultar los detalles del pago (delegado al provider).
+ *   3. Actualizar el registro en el store.
+ *   4. Disparar el mail de acceso si corresponde (con idempotencia).
  *
- * MP reintenta la notificación si respondemos con error. Devolver 200 siempre
- * que hayamos procesado (incluso si el evento no es relevante), para que MP
- * no siga insistiendo.
+ * MP reintenta la notificación si respondemos con error. Devolvemos 200
+ * siempre que hayamos procesado (incluso si el evento no es relevante).
+ *
+ * Refactor de Entrega 3: la lógica de MP se movió al provider.
+ * Este handler ahora es agnóstico de provider — cuando en Etapa 3 aparezca
+ * PayPal, se puede clonar este file como paypal-webhook.js y solo cambia
+ * `getProvider('mercadopago')` por `getProvider('paypal')`.
+ * La lógica de idempotencia, actualización de estado y mail queda idéntica.
  */
 
-import { MercadoPagoConfig, Payment } from 'mercadopago';
-import { MOCK_MODE, MP_ACCESS_TOKEN, ok, error, preflight } from './_lib/config.js';
+import { MOCK_MODE, ok, error, preflight } from './_lib/config.js';
 import { updatePaymentStatus, getPayment } from './_lib/store.js';
-import { sendAccessEmail } from './_lib/email.js'; // [NUEVO]
+import { sendAccessEmail } from './_lib/email.js';
+import { getProvider } from './_lib/providers/payment/index.js';
+import { PAYMENT_STATUS } from './_lib/providers/payment/interface.js';
 
-// [NUEVO] Espejo del catálogo en create-preference.js. Solo lo usamos para
-// resolver el título del curso al armar el asunto/cuerpo del mail.
-// Mantener sincronizado con src/data/cursos.js y con create-preference.js.
+// Espejo del catálogo, solo con títulos. Se elimina en Entrega 4 cuando
+// pasemos a leer del blob via productsRepo.findBySlug().
 const CATALOGO_TITLES = {
-  'vulnerabilidad-social': 'Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida',
+  'vulnerabilidad-social':
+    'Vulnerabilidad Social y Acumulación de Desventajas en las Trayectorias de Vida',
+};
+
+/**
+ * Traduce nuestro estado interno (del provider) al estado que persistimos
+ * en el store. El store solo distingue tres estados en la práctica:
+ * 'approved', 'pending', 'rejected'. Los 'cancelled' y 'unknown' se
+ * consolidan en 'rejected' para no gatillar accesos ni mails.
+ */
+const persistedStatusFor = (providerStatus) => {
+  if (providerStatus === PAYMENT_STATUS.APPROVED) return 'approved';
+  if (providerStatus === PAYMENT_STATUS.PENDING) return 'pending';
+  return 'rejected';
 };
 
 export const handler = async (event) => {
@@ -32,29 +51,27 @@ export const handler = async (event) => {
     return error(405, 'Method not allowed');
   }
 
-  // MP a veces manda info por query params y otras por body. Contemplamos ambos.
-  const query = event.queryStringParameters || {};
-  let body = {};
-  try {
-    body = event.body ? JSON.parse(event.body) : {};
-  } catch {
-    // ignoramos body inválido, puede ser un test de MP
-  }
+  const provider = getProvider('mercadopago');
 
-  const type = body.type || query.type;
-  const paymentId = body.data?.id || query['data.id'] || query.id;
+  // Parseamos el webhook a través del provider. Encapsula las distintas formas
+  // en que MP puede entregar el payload (body JSON, query string, action.split).
+  const webhookInfo = provider.parseWebhook({
+    body: event.body,
+    queryStringParameters: event.queryStringParameters,
+    headers: event.headers,
+  });
 
-  console.log('[webhook] recibido:', { type, paymentId });
+  console.log('[webhook] recibido:', webhookInfo);
 
-  // Solo procesamos eventos de tipo "payment". Los demás (merchant_order, etc)
-  // los ignoramos con 200 OK para que MP no reintente.
-  if (type !== 'payment' || !paymentId) {
+  // Si no es un evento de payment relevante, respondemos 200 para que MP
+  // no reintente. Los merchant_order y otros los ignoramos.
+  if (!webhookInfo) {
     return ok({ ignored: true, reason: 'not a payment event' });
   }
 
   // --- MODO MOCK ---------------------------------------------------
-  // En mock no llamamos a MP. Esperamos que el mock-checkout ya haya actualizado
-  // el status directamente. Este endpoint queda como no-op.
+  // En mock, el mock-checkout ya actualizó el status directamente vía
+  // mock-approve.js. Este endpoint queda como no-op.
   if (MOCK_MODE) {
     console.log('[MOCK] webhook ignorado en modo mock');
     return ok({ mock: true, ignored: true });
@@ -62,13 +79,13 @@ export const handler = async (event) => {
 
   // --- MODO REAL ---------------------------------------------------
   try {
-    const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN });
-    const paymentClient = new Payment(client);
-    const payment = await paymentClient.get({ id: paymentId });
+    // Consultamos los detalles del pago vía el provider. Es la fuente de
+    // verdad — nunca confiamos en el body del webhook para actualizar estado.
+    const payment = await provider.verifyPayment(webhookInfo.paymentId);
+    const { externalReference, status, metadata } = payment;
 
-    const externalReference = payment.external_reference;
     if (!externalReference) {
-      console.warn('[webhook] pago sin external_reference:', paymentId);
+      console.warn('[webhook] pago sin external_reference:', webhookInfo.paymentId);
       return ok({ processed: false, reason: 'no external_reference' });
     }
 
@@ -78,33 +95,28 @@ export const handler = async (event) => {
       return ok({ processed: false, reason: 'unknown external_reference' });
     }
 
-    // Mapear el status de MP al nuestro. Los estados de MP son:
-    // approved, pending, in_process, rejected, cancelled, refunded, charged_back
-    // Nosotros solo distinguimos approved / pending / rejected.
-    let mappedStatus = 'pending';
-    if (payment.status === 'approved') mappedStatus = 'approved';
-    else if (['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status)) {
-      mappedStatus = 'rejected';
-    }
+    const mappedStatus = persistedStatusFor(status);
 
     await updatePaymentStatus(externalReference, {
       status: mappedStatus,
-      mpPaymentId: String(payment.id),
-      mpStatus: payment.status,
-      mpStatusDetail: payment.status_detail,
-      approvedAt: mappedStatus === 'approved' ? new Date().toISOString() : null,
+      // Persistimos metadata del provider para debugging.
+      mpPaymentId: metadata?.mpPaymentId || null,
+      mpStatus: metadata?.mpStatus || null,
+      mpStatusDetail: metadata?.mpStatusDetail || null,
+      approvedAt:
+        mappedStatus === 'approved'
+          ? metadata?.approvedAt || new Date().toISOString()
+          : null,
     });
 
     console.log('[webhook] pago actualizado:', { externalReference, status: mappedStatus });
 
-    // [NUEVO] Disparo del mail de acceso.
-    // Idempotencia: MP puede reintentar el webhook varias veces para el mismo
-    // pago. Antes de mandar, chequeamos que:
+    // Disparo del mail de acceso.
+    // Idempotencia: MP puede reintentar el webhook. Chequeamos que:
     //   1. el pago quedó approved,
     //   2. existe un email de comprador,
-    //   3. no se envió antes (existing.emailSentAt es null/undefined).
-    // El chequeo usa el estado ANTERIOR (existing.status !== 'approved') como
-    // señal de "primera vez que llegamos a approved en este flujo".
+    //   3. no se envió antes (existing.emailSentAt es null/undefined),
+    //   4. el estado ANTERIOR no era approved (primera vez que llegamos ahí).
     if (
       mappedStatus === 'approved' &&
       existing.buyerEmail &&
@@ -120,14 +132,11 @@ export const handler = async (event) => {
       });
 
       if (result.sent) {
-        // Marca de envío exitoso para no reenviar en reintentos del webhook.
         await updatePaymentStatus(externalReference, {
           emailSentAt: new Date().toISOString(),
           emailId: result.id || null,
         });
       } else {
-        // Si falla el mail, no bloqueamos el flujo — el usuario ya tiene el
-        // redirect de MP y puede recuperar el acceso desde /recuperar-acceso.
         console.warn('[webhook] mail no enviado:', result.error);
       }
     }
@@ -135,8 +144,8 @@ export const handler = async (event) => {
     return ok({ processed: true, externalReference, status: mappedStatus });
   } catch (err) {
     console.error('[webhook] error:', err);
-    // Devolvemos 200 igual — si respondemos error, MP va a reintentar cientos
-    // de veces. Preferimos loguear y no bloquear.
+    // Devolvemos 200 igual — si respondemos error, MP reintenta cientos de
+    // veces. Preferimos loguear y no bloquear.
     return ok({ processed: false, error: err.message });
   }
 };
