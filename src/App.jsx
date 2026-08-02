@@ -14,10 +14,14 @@ import PagoPendiente from './pages/PagoPendiente.jsx';
 import PagoFallido from './pages/PagoFallido.jsx';
 import MockCheckout from './pages/MockCheckout.jsx';
 import RecuperarAcceso from './pages/RecuperarAcceso.jsx';
+import AdminLogin from './pages/AdminLogin.jsx';
+import AdminVerify from './pages/AdminVerify.jsx';
+import AdminPlaceholder from './pages/AdminPlaceholder.jsx';
 
 function App() {
   return (
     <Routes>
+      {/* Rutas públicas con layout del sitio (navbar + footer) */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/quienes-somos" element={<QuienesSomos />} />
@@ -34,6 +38,13 @@ function App() {
         <Route path="/mock-checkout" element={<MockCheckout />} />
         <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
       </Route>
+
+      {/* Rutas de admin SIN el Layout público. Van a tener su propio layout
+          en Sprint 2 cuando armemos el panel real. Por ahora renderizan sin
+          navbar/footer del sitio, que es lo correcto para el panel admin. */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/verify" element={<AdminVerify />} />
+      <Route path="/admin" element={<AdminPlaceholder />} />
     </Routes>
   );
 }

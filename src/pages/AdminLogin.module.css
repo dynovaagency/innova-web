@@ -1,0 +1,127 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  padding: 32px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 4px 24px rgba(21, 63, 113, 0.08);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #153f71;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #536e67;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #153f71;
+}
+
+.field input {
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  transition: border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #153f71;
+  box-shadow: 0 0 0 3px rgba(21, 63, 113, 0.1);
+}
+
+.field input:disabled {
+  background: #f5f7fa;
+  cursor: not-allowed;
+}
+
+.errorBox {
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.submitBtn {
+  padding: 14px 20px;
+  background: #153f71;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #0f2f56;
+}
+
+.submitBtn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.successBox {
+  padding: 20px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+}
+
+.successTitle {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #153f71;
+}
+
+.successBody {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333333;
+}
+
+.successHint {
+  margin: 0;
+  font-size: 13px;
+  color: #666666;
+}

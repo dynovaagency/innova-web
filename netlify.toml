@@ -38,3 +38,15 @@
   for = "/mock-checkout"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
+
+# Panel de administración — rutas internas para el equipo de Innova.
+# No queremos que Google las indexe ni las siga.
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
