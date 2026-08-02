@@ -1,27 +1,24 @@
 /**
  * POST /.netlify/functions/mp-webhook
  *
- * (Descripción y comportamiento igual que antes.)
+ * Notificación asíncrona de MercadoPago cuando cambia el estado de un pago.
+ * Ver docs completos en la versión Entrega 3/4.
  *
- * Refactor Entrega 4: elimina CATALOGO_TITLES local; obtiene el título
- * del producto desde el pago guardado (snapshot) o via productsRepo como
- * fallback.
+ * Refactor bugfix: consume paymentsRepo en vez de store.js viejo.
  */
 
 import { MOCK_MODE, ok, error, preflight } from './_lib/config.js';
-import { updatePaymentStatus, getPayment } from './_lib/store.js';
 import { sendAccessEmail } from './_lib/email.js';
 import { getProvider } from './_lib/providers/payment/index.js';
 import { PAYMENT_STATUS } from './_lib/providers/payment/interface.js';
-import * as productsRepo from './_lib/repositories/products.js';
+import * as paymentsRepo from './_lib/repositories/payments.js';
+import { resolveProductTitle } from './_lib/products/title-resolver.js';
 
 const persistedStatusFor = (providerStatus) => {
   if (providerStatus === PAYMENT_STATUS.APPROVED) return 'approved';
   if (providerStatus === PAYMENT_STATUS.PENDING) return 'pending';
   return 'rejected';
 };
-
-import { resolveProductTitle } from './_lib/products/title-resolver.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -57,7 +54,7 @@ export const handler = async (event) => {
       return ok({ processed: false, reason: 'no external_reference' });
     }
 
-    const existing = await getPayment(externalReference);
+    const existing = await paymentsRepo.findByReference(externalReference);
     if (!existing) {
       console.warn('[webhook] no encontramos el pago en el store:', externalReference);
       return ok({ processed: false, reason: 'unknown external_reference' });
@@ -65,7 +62,7 @@ export const handler = async (event) => {
 
     const mappedStatus = persistedStatusFor(status);
 
-    await updatePaymentStatus(externalReference, {
+    await paymentsRepo.updateStatus(externalReference, {
       status: mappedStatus,
       mpPaymentId: metadata?.mpPaymentId || null,
       mpStatus: metadata?.mpStatus || null,
@@ -93,7 +90,7 @@ export const handler = async (event) => {
       });
 
       if (result.sent) {
-        await updatePaymentStatus(externalReference, {
+        await paymentsRepo.updateStatus(externalReference, {
           emailSentAt: new Date().toISOString(),
           emailId: result.id || null,
         });

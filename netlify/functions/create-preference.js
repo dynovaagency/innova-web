@@ -14,13 +14,13 @@
  *     externalReference: "inv_..."
  *   }
  *
- * Refactor Entrega 4: elimina el CATALOGO local; consume products via
- * productsRepo. La fuente de verdad del catálogo pasa a ser Netlify Blobs.
+ * Refactor Entrega 4 (bugfix): consume paymentsRepo en vez de store.js viejo,
+ * unificando el namespace de Blobs con el que usa recuperar-acceso.js.
  */
 
 import { SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
 import { getProvider } from './_lib/providers/payment/index.js';
-import { savePayment } from './_lib/store.js';
+import * as paymentsRepo from './_lib/repositories/payments.js';
 import * as productsRepo from './_lib/repositories/products.js';
 
 const generateExternalReference = () => {
@@ -44,8 +44,6 @@ export const handler = async (event) => {
     return error(400, 'cursoSlug es requerido');
   }
 
-  // Consulta el producto en el blob. Si no existe o está inactivo, no
-  // se puede iniciar checkout.
   const product = await productsRepo.findBySlug(cursoSlug, { activeOnly: true });
   if (!product) {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
@@ -68,14 +66,14 @@ export const handler = async (event) => {
       notificationUrl,
     });
 
-    await savePayment({
+    await paymentsRepo.insert({
       externalReference,
       status: 'pending',
       amount: product.price,
       currency: product.currency || 'ARS',
       buyerEmail: buyerEmail || null,
       cursoSlug,
-      productTitle: product.title,   // ← snapshot del title al momento de la compra
+      productTitle: product.title,
       provider: provider.name,
       providerReference,
       providerMetadata: metadata,

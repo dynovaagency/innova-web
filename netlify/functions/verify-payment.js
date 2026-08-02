@@ -11,10 +11,12 @@
  *
  * SIEMPRE devolvemos 200 (no 404/403) para que el frontend pueda mostrar un
  * mensaje amigable en vez de un error genérico del navegador.
+ *
+ * Refactor bugfix: consume paymentsRepo en vez de store.js viejo.
  */
 
 import { MOCK_MODE, ok, error, preflight } from './_lib/config.js';
-import { getPayment } from './_lib/store.js';
+import * as paymentsRepo from './_lib/repositories/payments.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -28,39 +30,50 @@ export const handler = async (event) => {
   }
 
   // --- MODO MOCK ---------------------------------------------------
-  // No hay persistencia en mock. Cualquier ref con el prefijo esperado se
-  // acepta. La página del curso confía en el slug del path para saber qué
-  // cápsula mostrar.
+  // Con el refactor a paymentsRepo, ahora sí podemos consultar el store en
+  // mock también (los datos existen porque mock-approve los guarda ahí).
+  // Pero mantenemos un fallback permisivo por si alguien probó el flujo
+  // antes de que estos cambios llegaran a develop y no tiene pagos guardados.
   if (MOCK_MODE) {
-    if (!ref.startsWith('inv_')) {
-      return ok({ valid: false, reason: 'not_found' });
+    const payment = await paymentsRepo.findByReference(ref);
+    if (payment && payment.status === 'approved') {
+      return ok({
+        valid: true,
+        cursoSlug: payment.cursoSlug,
+        status: 'approved',
+        approvedAt: payment.approvedAt,
+        mock: true,
+      });
     }
-    return ok({
-      valid: true,
-      cursoSlug: expectedSlug || 'vulnerabilidad-social',
-      status: 'approved',
-      approvedAt: new Date().toISOString(),
-      mock: true,
-    });
+    // Fallback permisivo: si el ref tiene formato válido, aceptamos igual.
+    // Facilita testing manual sin necesidad de pasar por el flujo completo.
+    if (ref.startsWith('inv_')) {
+      return ok({
+        valid: true,
+        cursoSlug: expectedSlug || 'vulnerabilidad-social',
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        mock: true,
+        note: 'permissive_fallback',
+      });
+    }
+    return ok({ valid: false, reason: 'not_found' });
   }
 
-  // --- MODO REAL (con Blobs) ---------------------------------------
-  const payment = await getPayment(ref);
+  // --- MODO REAL ---------------------------------------------------
+  const payment = await paymentsRepo.findByReference(ref);
   if (!payment) {
     return ok({ valid: false, reason: 'not_found' });
   }
 
-  // Si el pago está pending o rejected, no dar acceso.
   if (payment.status !== 'approved') {
     return ok({
       valid: false,
-      reason: payment.status, // "pending" | "rejected"
+      reason: payment.status,
       cursoSlug: payment.cursoSlug,
     });
   }
 
-  // Si nos pasan el slug esperado y no coincide con el del pago, tampoco
-  // damos acceso (evita que un pago de otra cápsula abra ésta).
   if (expectedSlug && payment.cursoSlug !== expectedSlug) {
     return ok({
       valid: false,
