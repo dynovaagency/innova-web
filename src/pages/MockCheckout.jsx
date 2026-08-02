@@ -13,6 +13,10 @@ import styles from './MockCheckout.module.css';
  * IMPORTANTE: dejar esta página deployada aunque MOCK_MODE esté off. Ocupa
  * casi nada y sirve como salvavidas si algún día hay que degradar a modo mock
  * temporalmente por caída de MP.
+ *
+ * Refactor bugfix: aprobar ahora llama a mock-approve para actualizar el
+ * estado del pago en el store, y esperar a que responda antes de redirigir.
+ * Antes navegaba directo sin tocar el backend, dejando el pago en pending.
  */
 function MockCheckout() {
   const [searchParams] = useSearchParams();
@@ -20,14 +24,27 @@ function MockCheckout() {
   const ref = searchParams.get('ref');
   const slug = searchParams.get('slug');
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
 
   const approve = async () => {
     if (!ref) return;
     setProcessing(true);
-    // Delay artificial para simular el "procesando pago" del checkout real
-    setTimeout(() => {
-      navigate(`/curso/${slug || 'vulnerabilidad-social'}?ref=${ref}`);
-    }, 800);
+    setError('');
+    try {
+      const res = await fetch(`/.netlify/functions/mock-approve?ref=${encodeURIComponent(ref)}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'No se pudo aprobar el pago');
+      }
+      const data = await res.json();
+      navigate(`/curso/${data.cursoSlug || slug || 'vulnerabilidad-social'}?ref=${ref}`);
+    } catch (err) {
+      console.error('[mock-approve] error:', err);
+      setError(err.message || 'Error al procesar el pago simulado');
+      setProcessing(false);
+    }
   };
 
   const reject = () => {
@@ -58,6 +75,12 @@ function MockCheckout() {
             <dd>{slug || '—'}</dd>
           </div>
         </dl>
+
+        {error && (
+          <div className={styles.errorBox} role="alert">
+            {error}
+          </div>
+        )}
 
         <div className={styles.actions}>
           <button
