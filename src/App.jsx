@@ -14,9 +14,16 @@ import PagoPendiente from './pages/PagoPendiente.jsx';
 import PagoFallido from './pages/PagoFallido.jsx';
 import MockCheckout from './pages/MockCheckout.jsx';
 import RecuperarAcceso from './pages/RecuperarAcceso.jsx';
+
+// Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
 import AdminVerify from './pages/AdminVerify.jsx';
-import AdminPlaceholder from './pages/AdminPlaceholder.jsx';
+import AdminLayout from './pages/admin/AdminLayout.jsx';
+import Dashboard from './pages/admin/Dashboard.jsx';
+import Capsulas from './pages/admin/Capsulas.jsx';
+import Pagos from './pages/admin/Pagos.jsx';
+import Inscriptos from './pages/admin/Inscriptos.jsx';
+import Configuracion from './pages/admin/Configuracion.jsx';
 
 function App() {
   return (
@@ -39,12 +46,18 @@ function App() {
         <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
       </Route>
 
-      {/* Rutas de admin SIN el Layout público. Van a tener su propio layout
-          en Sprint 2 cuando armemos el panel real. Por ahora renderizan sin
-          navbar/footer del sitio, que es lo correcto para el panel admin. */}
+      {/* Rutas de autenticación admin (sin layout público, sin layout admin) */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/verify" element={<AdminVerify />} />
-      <Route path="/admin" element={<AdminPlaceholder />} />
+
+      {/* Rutas del panel admin (con AdminLayout envolviendo) */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Dashboard />} />
+        <Route path="capsulas" element={<Capsulas />} />
+        <Route path="pagos" element={<Pagos />} />
+        <Route path="inscriptos" element={<Inscriptos />} />
+        <Route path="configuracion" element={<Configuracion />} />
+      </Route>
     </Routes>
   );
 }
