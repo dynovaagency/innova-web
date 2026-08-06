@@ -40,6 +40,11 @@ const INITIAL_ADMINS = [
     name: 'Paola Quiroga',
     role: 'admin',
   },
+  {
+    email: 'avellanedalorena@gmail.com',
+    name: 'Lorena Avellaneda',
+    role: 'admin',
+  }
   // Cuando Innova pase los emails, sumar acá:
 
   // { email: 'lorena@...', name: 'Lorena ...', role: 'admin' },
