@@ -4,7 +4,7 @@
  * Recibe:
  *   {
  *     cursoSlug: "vulnerabilidad-social",
- *     buyerEmail: "usuario@example.com"   // opcional pero recomendado
+ *     buyerEmail: "usuario@example.com"   // OBLIGATORIO desde ahora
  *   }
  *
  * Devuelve:
@@ -14,14 +14,19 @@
  *     externalReference: "inv_..."
  *   }
  *
- * Refactor Entrega 4 (bugfix): consume paymentsRepo en vez de store.js viejo,
- * unificando el namespace de Blobs con el que usa recuperar-acceso.js.
+ * El email es OBLIGATORIO desde este cambio. Sin email, el comprador no
+ * recibe el mail de acceso y queda "huérfano" en el sistema (situación que
+ * ya ocurrió en producción). El frontend también lo valida, esto es la
+ * segunda línea de defensa.
  */
 
 import { SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
 import { getProvider } from './_lib/providers/payment/index.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import * as productsRepo from './_lib/repositories/products.js';
+
+// Regex básico de email. Sincronizado con el del frontend.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const generateExternalReference = () => {
   return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -44,6 +49,15 @@ export const handler = async (event) => {
     return error(400, 'cursoSlug es requerido');
   }
 
+  // Validación de email obligatorio.
+  if (!buyerEmail || typeof buyerEmail !== 'string') {
+    return error(400, 'buyerEmail es requerido para enviar el acceso al curso');
+  }
+  const normalizedEmail = buyerEmail.trim();
+  if (!EMAIL_REGEX.test(normalizedEmail)) {
+    return error(400, 'buyerEmail no tiene un formato válido');
+  }
+
   const product = await productsRepo.findBySlug(cursoSlug, { activeOnly: true });
   if (!product) {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
@@ -60,7 +74,7 @@ export const handler = async (event) => {
 
     const { checkoutUrl, providerReference, metadata } = await provider.createCheckout({
       product,
-      buyerEmail: buyerEmail || null,
+      buyerEmail: normalizedEmail,
       externalReference,
       backUrls: buildBackUrls(cursoSlug, externalReference),
       notificationUrl,
@@ -71,7 +85,7 @@ export const handler = async (event) => {
       status: 'pending',
       amount: product.price,
       currency: product.currency || 'ARS',
-      buyerEmail: buyerEmail || null,
+      buyerEmail: normalizedEmail,
       cursoSlug,
       productTitle: product.title,
       provider: provider.name,

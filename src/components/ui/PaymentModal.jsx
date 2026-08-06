@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Button from './Button.jsx';
 import styles from './PaymentModal.module.css';
 
@@ -11,29 +11,38 @@ import styles from './PaymentModal.module.css';
  *      (o a /mock-checkout en modo mock).
  *   3. MP procesa el pago y redirige según estado.
  *
- * Refactor Entrega 4:
- *   - Ya no hardcodea el precio. Lo recibe via props.priceFormatted (string
- *     con formato "$ 28.000") desde el componente que consumió el catálogo.
- *   - El slug también viene de props, defaultea a vulnerabilidad-social solo
- *     como fallback defensivo.
+ * Validación de email: obligatorio, con validación de formato. Sin email
+ * no se puede iniciar el pago porque el email es el único canal de acceso
+ * al contenido post-pago (no hay auth de usuario). Esto evita el escenario
+ * "pagué y no me llegó nada" que ya se dio en producción.
  *
  * Props:
  *   - open: boolean
  *   - onClose: () => void
- *   - product: {
- *       slug: string,
- *       title: string,
- *       price: number,
- *       currency: string,
- *       priceFormatted: string  // "$ 28.000" ya listo para mostrar
- *     }
+ *   - product: { slug, title, price, currency, priceFormatted }
  */
+
+// Regex básico de email. Cubre 99% de casos válidos sin ser paranoico.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function PaymentModal({ open, onClose, product }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [email, setEmail] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const dialogRef = useRef(null);
+
+  // Validación de email en tiempo real. Solo mostramos el error si el
+  // usuario ya tocó el campo (para no mostrar error apenas abre el modal).
+  const emailError = useMemo(() => {
+    if (!emailTouched) return '';
+    if (!email.trim()) return 'Necesitamos tu email para enviarte el acceso al curso.';
+    if (!EMAIL_REGEX.test(email.trim())) return 'Ingresá un email válido.';
+    return '';
+  }, [email, emailTouched]);
+
+  const isEmailValid = email.trim() && EMAIL_REGEX.test(email.trim());
+  const canSubmit = !loading && isEmailValid;
 
   useEffect(() => {
     if (!open) return;
@@ -53,12 +62,20 @@ function PaymentModal({ open, onClose, product }) {
     if (!open) {
       setErrorMsg('');
       setLoading(false);
+      setEmailTouched(false);
     }
   }, [open]);
 
   if (!open) return null;
 
   const handlePay = async () => {
+    // Doble check: aunque el botón esté disabled, protegemos por si alguien
+    // manipula el DOM.
+    if (!isEmailValid) {
+      setEmailTouched(true);
+      return;
+    }
+
     setLoading(true);
     setErrorMsg('');
     try {
@@ -67,7 +84,7 @@ function PaymentModal({ open, onClose, product }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cursoSlug: product?.slug || 'vulnerabilidad-social',
-          buyerEmail: email || undefined,
+          buyerEmail: email.trim(),
         }),
       });
 
@@ -89,8 +106,6 @@ function PaymentModal({ open, onClose, product }) {
     }
   };
 
-  // Precio a mostrar: si el prop está bien formateado, lo usamos.
-  // Si no, hacemos un formateo de emergencia (protección defensiva).
   const displayPrice = product?.priceFormatted
     ? product.priceFormatted
     : (product?.price
@@ -146,18 +161,30 @@ function PaymentModal({ open, onClose, product }) {
 
           <p className={styles.mpDescription}>
             Al confirmar, vas a ser dirigido a Mercado Pago para completar el pago.
-            Una vez acreditado, te llevamos automáticamente a la cápsula.
+            Una vez acreditado, te llevamos automáticamente a la cápsula y te
+            enviamos el acceso a tu email.
           </p>
 
           <label className={styles.emailField}>
-            <span>Tu email (para el comprobante)</span>
+            <span>
+              Tu email <span className={styles.required} aria-hidden="true">*</span>
+            </span>
             <input
               type="email"
               placeholder="ejemplo@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
               disabled={loading}
+              required
+              aria-invalid={!!emailError}
+              aria-describedby={emailError ? 'email-error' : undefined}
             />
+            {emailError && (
+              <span id="email-error" className={styles.fieldError} role="alert">
+                {emailError}
+              </span>
+            )}
           </label>
 
           {errorMsg && (
@@ -170,7 +197,7 @@ function PaymentModal({ open, onClose, product }) {
             variant="secondary"
             size="md"
             onClick={handlePay}
-            disabled={loading}
+            disabled={!canSubmit}
             className={styles.mpCta}
           >
             {loading ? (
