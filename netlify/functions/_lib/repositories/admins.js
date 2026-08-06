@@ -25,9 +25,23 @@ const INITIAL_ADMINS = [
     name: 'Felix Doura',
     role: 'superadmin',
   },
+  {
+    email: 'hola@dynovaagency.com',
+    name: 'Dynova Agency',
+    role: 'superadmin',
+  },
+  {
+    email: 'estebanmartin119@gmail.com',
+    name: 'Esteban Martín',
+    role: 'admin',
+  },
+  {
+    email: 'quirogapaola@yahoo.com',
+    name: 'Paola Quiroga',
+    role: 'admin',
+  },
   // Cuando Innova pase los emails, sumar acá:
-  // { email: 'paola@...', name: 'Paola ...', role: 'admin' },
-  // { email: 'esteban@...', name: 'Esteban ...', role: 'admin' },
+
   // { email: 'lorena@...', name: 'Lorena ...', role: 'admin' },
   // { email: 'jesica@...', name: 'Jesica ...', role: 'admin' },
 ];
