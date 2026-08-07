@@ -24,6 +24,7 @@ import Capsulas from './pages/admin/Capsulas.jsx';
 import Pagos from './pages/admin/Pagos.jsx';
 import Inscriptos from './pages/admin/Inscriptos.jsx';
 import Configuracion from './pages/admin/Configuracion.jsx';
+import CapsulaForm from './pages/admin/CapsulaForm.jsx';
 
 function App() {
   return (
@@ -51,13 +52,15 @@ function App() {
       <Route path="/admin/verify" element={<AdminVerify />} />
 
       {/* Rutas del panel admin (con AdminLayout envolviendo) */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="capsulas" element={<Capsulas />} />
-        <Route path="pagos" element={<Pagos />} />
-        <Route path="inscriptos" element={<Inscriptos />} />
-        <Route path="configuracion" element={<Configuracion />} />
-      </Route>
+    <Route path="/admin" element={<AdminLayout />}>
+      <Route index element={<Dashboard />} />
+      <Route path="capsulas" element={<Capsulas />} />
+    <Route path="capsulas/nueva" element={<CapsulaForm />} />
+      <Route path="capsulas/:slug/editar" element={<CapsulaForm />} />
+      <Route path="pagos" element={<Pagos />} />
+      <Route path="inscriptos" element={<Inscriptos />} />
+      <Route path="configuracion" element={<Configuracion />} />
+    </Route>
     </Routes>
   );
 }
