@@ -40,6 +40,7 @@ function PagoDetalle() {
   const toast = useToast();
 
   const [payment, setPayment] = useState(null);
+  const [accessUrl, setAccessUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -60,6 +61,7 @@ function PagoDetalle() {
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
       setPayment(data.payment);
+      setAccessUrl(data.accessUrl || null);
     } catch (err) {
       console.error('[PagoDetalle] fetch error:', err);
       setError(err.message || 'Error cargando el pago');
@@ -140,7 +142,6 @@ function PagoDetalle() {
   if (!payment) return null;
 
   const canResend = payment.status === 'approved' && payment.buyerEmail;
-  const accessUrl = `${window.location.origin}/curso/${payment.cursoSlug}?ref=${payment.externalReference}`;
 
   return (
     <>
@@ -323,6 +324,7 @@ function PagoDetalle() {
         </section>
 
         {/* Bloque 4: Link de acceso */}
+        {accessUrl && (
         <section className={styles.card}>
           <h2 className={styles.sectionTitle}>Link de acceso</h2>
           <p className={styles.hint}>
@@ -352,6 +354,7 @@ function PagoDetalle() {
             </div>
           </div>
         </section>
+        )}
 
         {/* Bloque 5: Metadata cruda (colapsable) */}
         {payment.providerMetadata && (
