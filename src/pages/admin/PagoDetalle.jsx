@@ -340,7 +340,7 @@ function PagoDetalle() {
                 <Copy size={14} aria-hidden="true" />
                 Copiar
               </button>
-              
+              <a
                 href={accessUrl}
                 target="_blank"
                 rel="noopener noreferrer"
