@@ -25,6 +25,7 @@ import Pagos from './pages/admin/Pagos.jsx';
 import Inscriptos from './pages/admin/Inscriptos.jsx';
 import Configuracion from './pages/admin/Configuracion.jsx';
 import CapsulaForm from './pages/admin/CapsulaForm.jsx';
+import PagoDetalle from './pages/admin/PagoDetalle.jsx';
 
 function App() {
   return (
@@ -55,7 +56,8 @@ function App() {
     <Route path="/admin" element={<AdminLayout />}>
       <Route index element={<Dashboard />} />
       <Route path="capsulas" element={<Capsulas />} />
-    <Route path="capsulas/nueva" element={<CapsulaForm />} />
+      <Route path="pagos/:externalReference" element={<PagoDetalle />} />
+      <Route path="capsulas/nueva" element={<CapsulaForm />} />
       <Route path="capsulas/:slug/editar" element={<CapsulaForm />} />
       <Route path="pagos" element={<Pagos />} />
       <Route path="inscriptos" element={<Inscriptos />} />
