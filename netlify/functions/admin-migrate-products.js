@@ -20,6 +20,7 @@
  *     -d '{"dryRun": true}'
  */
 
+
 import * as productsRepo from './_lib/repositories/products.js';
 import { CONTENT_TYPES } from './_lib/products/types.js';
 
@@ -64,10 +65,23 @@ const adaptProduct = (product) => {
   };
 };
 
+
+
 export const handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method not allowed' };
   }
+
+  // DIAGNÓSTICO TEMPORAL
+  console.log('[admin-migrate-products] DEBUG:', {
+    hasSecret: Boolean(REQUIRED_SECRET),
+    secretLength: REQUIRED_SECRET?.length || 0,
+    secretFirstChars: REQUIRED_SECRET ? REQUIRED_SECRET.slice(0, 4) : 'NONE',
+    headerReceived: event.headers['x-seed-secret'] ? 'yes' : 'no',
+    headerLength: event.headers['x-seed-secret']?.length || 0,
+    headerFirstChars: event.headers['x-seed-secret'] ? event.headers['x-seed-secret'].slice(0, 4) : 'NONE',
+    match: REQUIRED_SECRET === event.headers['x-seed-secret'],
+  });
 
   const secret =
     event.headers['x-seed-secret'] || event.headers['X-Seed-Secret'];
