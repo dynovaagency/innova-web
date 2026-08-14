@@ -111,7 +111,9 @@ function CapsulaDetallePublica() {
             <h3 className={styles.detailsTitle}>Detalles del Curso</h3>
             <ul className={styles.detailsList}>
               <li className={styles.detailItem}>
-                <Play size={18} className={styles.detailIcon} aria-hidden="true" />
+                <span className={styles.detailIcon}>
+                  <Play size={16} aria-hidden="true" />
+                </span>
                 <div>
                   <span className={styles.detailLabel}>Modalidad</span>
                   <span className={styles.detailValue}>
@@ -124,7 +126,9 @@ function CapsulaDetallePublica() {
 
               {product.duration && (
                 <li className={styles.detailItem}>
-                  <Clock size={18} className={styles.detailIcon} aria-hidden="true" />
+                  <span className={styles.detailIcon}>
+                    <Clock size={16} aria-hidden="true" />
+                  </span>
                   <div>
                     <span className={styles.detailLabel}>Duración</span>
                     <span className={styles.detailValue}>{product.duration}</span>
@@ -133,7 +137,9 @@ function CapsulaDetallePublica() {
               )}
 
               <li className={styles.detailItem}>
-                <Award size={18} className={styles.detailIcon} aria-hidden="true" />
+                <span className={styles.detailIcon}>
+                  <Award size={16} aria-hidden="true" />
+                </span>
                 <div>
                   <span className={styles.detailLabel}>Certificación</span>
                   <span className={styles.detailValue}>Incluida al finalizar</span>
@@ -141,7 +147,9 @@ function CapsulaDetallePublica() {
               </li>
 
               <li className={styles.detailItem}>
-                <CreditCard size={18} className={styles.detailIcon} aria-hidden="true" />
+                <span className={styles.detailIcon}>
+                  <CreditCard size={16} aria-hidden="true" />
+                </span>
                 <div>
                   <span className={styles.detailLabel}>Medios de pago</span>
                   <span className={styles.detailValue}>

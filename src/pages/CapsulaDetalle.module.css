@@ -4,6 +4,44 @@
   padding-bottom: var(--space-4xl);
 }
 
+.centeredState {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-4xl) var(--space-lg);
+  text-align: center;
+}
+
+.errorTitle {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+  margin: 0 0 var(--space-sm);
+}
+
+.errorText {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-lg);
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  font-size: var(--font-size-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.backButton:hover {
+  background-color: var(--color-secondary-hover);
+}
+
 /* ===================== HEADER ===================== */
 .header {
   position: relative;
@@ -35,8 +73,9 @@
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-secondary);
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .breadcrumb a {
@@ -49,19 +88,18 @@
   color: var(--color-text-inverse);
 }
 
-.headerTag {
+.categoryRow {
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  background-color: rgba(130, 198, 197, 0.18);
-  color: var(--color-secondary);
+  margin-bottom: var(--space-md);
+}
+
+.categoryLabel {
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  color: var(--color-secondary);
+  font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wide);
-  padding: 6px 14px;
-  border: 1px solid rgba(130, 198, 197, 0.4);
-  border-radius: var(--radius-pill);
-  margin-bottom: var(--space-lg);
 }
 
 .headerTitle {
@@ -106,68 +144,12 @@
   margin: 0;
 }
 
-.main p {
+.description {
   color: var(--color-text);
   line-height: var(--line-height-relaxed);
   margin: 0;
-}
-
-.quote {
-  background-color: var(--color-secondary-soft);
-  border-left: 4px solid var(--color-secondary);
-  padding: var(--space-md) var(--space-lg);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  margin: var(--space-sm) 0;
+  white-space: pre-line;
   font-size: var(--font-size-base);
-  line-height: var(--line-height-relaxed);
-  color: var(--color-text);
-}
-
-.subCards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-  margin-top: var(--space-md);
-}
-
-.subCard {
-  padding: var(--space-md);
-  background-color: var(--color-surface-elevated);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.subCard:nth-child(2) {
-  background-color: var(--color-secondary-soft);
-  border-color: var(--color-secondary);
-}
-
-.subCardIcon {
-  display: inline-flex;
-  width: 36px;
-  height: 36px;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
-  background-color: var(--color-surface);
-  border-radius: var(--radius-md);
-}
-
-.subCardTitle {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  margin: 0;
-}
-
-.subCardText {
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  line-height: var(--line-height-relaxed);
-  margin: 0;
 }
 
 /* ===================== SIDEBAR ===================== */
@@ -206,6 +188,7 @@
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   letter-spacing: var(--letter-spacing-tight);
+  font-variant-numeric: tabular-nums;
 }
 
 .priceUnit {
@@ -233,6 +216,7 @@
   cursor: pointer;
   transition: background-color var(--transition-fast);
   text-transform: uppercase;
+  width: 100%;
 }
 
 .ctaBtn:hover {
@@ -254,6 +238,9 @@
 }
 
 .detailsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -275,6 +262,7 @@
   background-color: var(--color-secondary-soft);
   color: var(--color-primary);
   border-radius: var(--radius-sm);
+  padding: 6px;
 }
 
 .detailLabel {
@@ -284,27 +272,19 @@
   color: var(--color-text);
 }
 
-.detailValues {
-  margin: 2px 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.detailValue {
+  display: block;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   line-height: 1.5;
+  margin-top: 2px;
 }
 
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
-    /* En mobile/tablet el negative margin del desktop (-64px) hace que la card
-       blanca tape el final del título largo. Anulamos esa elevación y dejamos
-       que la card empiece debajo del header con un poco de aire. */
     margin-top: var(--space-lg);
-  }
-  .subCards {
-    grid-template-columns: 1fr;
   }
 }
 
