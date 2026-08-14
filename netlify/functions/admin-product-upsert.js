@@ -18,7 +18,8 @@
  *     featured: boolean,
  *     imageUrl: string opcional,
  *     contentType: 'embed' | 'external_link',
- *     contentUrl: string
+ *     contentUrl: string,
+ *     modalidad: 'capsula' | 'curso'
  *   }
  *
  * Comportamiento:
@@ -37,7 +38,6 @@ import { requireAdmin } from './_lib/auth/middleware.js';
 import * as productsRepo from './_lib/repositories/products.js';
 import { validateProduct } from './_lib/products/schema.js';
 
-// Normaliza el slug: lowercase, sin espacios, sin caracteres raros.
 const normalizeSlug = (raw) => {
   if (typeof raw !== 'string') return '';
   return raw
@@ -68,10 +68,6 @@ export const handler = async (event) => {
     return error(400, 'slug es requerido');
   }
 
-  // Armar el producto completo con TODOS los campos del schema actual.
-  // Los campos nuevos (Entrega 3.5) se incluyen acá:
-  //   - category, duration, featured, imageUrl
-  //   - contentType, contentUrl (reemplaza geniallyUrl legacy)
   const productData = {
     slug,
     type: payload.type || 'capsula_genially',
@@ -80,16 +76,16 @@ export const handler = async (event) => {
     description: (payload.description || '').trim(),
     price: Number(payload.price),
     currency: payload.currency || 'ARS',
-    active: payload.active !== false, // default true si no viene
+    active: payload.active !== false,
     category: (payload.category || '').trim(),
     duration: (payload.duration || '').trim(),
     featured: payload.featured === true,
     imageUrl: (payload.imageUrl || '').trim(),
     contentType: payload.contentType || 'embed',
     contentUrl: (payload.contentUrl || payload.geniallyUrl || '').trim(),
+    modalidad: payload.modalidad || 'capsula',
   };
 
-  // Validar contra schema
   const validation = validateProduct(productData);
   if (!validation.valid) {
     return error(400, 'Datos de producto inválidos', {

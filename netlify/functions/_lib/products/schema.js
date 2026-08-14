@@ -6,6 +6,8 @@
  *   - Campos específicos por type (ver TYPE_SPECIFIC_VALIDATORS).
  *   - Campos de presentación pública (Entrega 3.5): category, duration,
  *     featured, imageUrl, contentType, contentUrl.
+ *   - Modalidad (Sprint 2.6): capsula | curso. Determina el label mostrado
+ *     en las cards y en el detalle público. No cambia el flujo técnico.
  *
  * validateProduct(product) devuelve { valid, errors }.
  * Si valid es false, errors es un array de strings describiendo problemas.
@@ -20,8 +22,19 @@
 import { PRODUCT_TYPES, isValidType, CONTENT_TYPES, isValidContentType } from './types.js';
 
 /**
+ * Modalidades disponibles. Determinan el label público de la card.
+ * capsula: contenido asincrónico (default).
+ * curso: contenido con clases en vivo o cohortes.
+ */
+export const MODALIDADES = Object.freeze({
+  CAPSULA: 'capsula',
+  CURSO: 'curso',
+});
+
+const isValidModalidad = (m) => Object.values(MODALIDADES).includes(m);
+
+/**
  * Campos requeridos para todo producto, sin importar el type.
- * Actualizado en Entrega 3.5 con los campos de presentación pública.
  */
 const COMMON_REQUIRED_FIELDS = [
   'slug', 'type', 'title', 'price', 'currency', 'active',
@@ -38,44 +51,26 @@ const isValidUrl = (url) => {
   }
 };
 
-/**
- * Campos específicos por type. Cada value es una función que recibe
- * el producto y devuelve un array de errores (vacío si válido).
- *
- * NOTA: desde Entrega 3.5 el contentType y contentUrl son comunes, no
- * específicos del tipo. Este validador ahora hace validaciones extra
- * que solo aplican a capsula_genially (ej. warnings específicos).
- *
- * Al agregar un tipo nuevo, sumar acá su validador específico.
- */
 const TYPE_SPECIFIC_VALIDATORS = {
   [PRODUCT_TYPES.CAPSULA_GENIALLY]: (product) => {
-    // No hay validaciones específicas adicionales a las comunes.
-    // Se mantiene la key para preservar el patrón.
     return [];
   },
-  // Futuro:
-  // [PRODUCT_TYPES.CURSO_SINCRONICO]: (product) => { ... valida fechaInicio, cupo, ... }
 };
 
-/**
- * Valida un producto completo. Devuelve { valid, errors }.
- */
 export const validateProduct = (product) => {
   const errors = [];
 
-  // 1. Debe ser un objeto.
   if (!product || typeof product !== 'object') {
     return { valid: false, errors: ['Producto debe ser un objeto'] };
   }
 
-  // 2. Chequeo de campos comunes requeridos.
-  // Aceptamos geniallyUrl como fallback de contentUrl (retrocompatibilidad
-  // durante la migración de la Entrega 3.5).
+  // Retrocompatibilidad: aceptamos geniallyUrl como fallback de contentUrl,
+  // y contentType default 'embed' si no viene.
   const productToValidate = {
     ...product,
     contentUrl: product.contentUrl || product.geniallyUrl,
     contentType: product.contentType || CONTENT_TYPES.EMBED,
+    modalidad: product.modalidad || MODALIDADES.CAPSULA,
   };
 
   for (const field of COMMON_REQUIRED_FIELDS) {
@@ -85,22 +80,22 @@ export const validateProduct = (product) => {
     }
   }
 
-  // 3. Type debe estar registrado.
   if (product.type && !isValidType(product.type)) {
     errors.push(`Type inválido: ${product.type}`);
   }
 
-  // 4. ContentType debe ser válido.
   if (productToValidate.contentType && !isValidContentType(productToValidate.contentType)) {
     errors.push(`contentType inválido: ${productToValidate.contentType}. Debe ser embed o external_link.`);
   }
 
-  // 5. ContentUrl debe ser URL válida.
   if (productToValidate.contentUrl && !isValidUrl(productToValidate.contentUrl)) {
     errors.push('contentUrl debe empezar con http:// o https://');
   }
 
-  // 6. Validaciones de tipo específico.
+  if (productToValidate.modalidad && !isValidModalidad(productToValidate.modalidad)) {
+    errors.push(`modalidad inválida: ${productToValidate.modalidad}. Debe ser capsula o curso.`);
+  }
+
   if (product.type && isValidType(product.type)) {
     const typeValidator = TYPE_SPECIFIC_VALIDATORS[product.type];
     if (typeValidator) {
@@ -108,7 +103,6 @@ export const validateProduct = (product) => {
     }
   }
 
-  // 7. Sanity checks numéricos y de dominio.
   if (product.price !== undefined && (typeof product.price !== 'number' || product.price < 0)) {
     errors.push('price debe ser un número >= 0');
   }
@@ -119,7 +113,6 @@ export const validateProduct = (product) => {
     errors.push('active debe ser boolean');
   }
 
-  // 8. Validaciones de campos de presentación (Entrega 3.5).
   if (product.featured !== undefined && typeof product.featured !== 'boolean') {
     errors.push('featured debe ser boolean');
   }
@@ -152,4 +145,5 @@ export const emptyProduct = (type = PRODUCT_TYPES.CAPSULA_GENIALLY) => ({
   imageUrl: '',
   contentType: CONTENT_TYPES.EMBED,
   contentUrl: '',
+  modalidad: MODALIDADES.CAPSULA,
 });
