@@ -15,16 +15,27 @@ import styles from './CapsulaForm.module.css';
  *   - Crear:  /admin/capsulas/nueva  (params.slug === undefined)
  *   - Editar: /admin/capsulas/:slug/editar
  *
- * Validaciones cliente (además de las server-side):
- *   - Todos los campos requeridos.
- *   - Precio > 0.
- *   - Slug con formato lowercase-guion (auto-normalizado).
- *   - geniallyUrl válido (http/https).
+ * Campos nuevos en Entrega 3.5:
+ *   - category, duration, featured, imageUrl, contentType, contentUrl.
+ *   - geniallyUrl deprecated (reemplazado por contentUrl).
  */
 
 const CURRENCY_OPTIONS = [
   { value: 'ARS', label: 'ARS (pesos argentinos)' },
   { value: 'USD', label: 'USD (dólares)' },
+];
+
+const CONTENT_TYPE_OPTIONS = [
+  {
+    value: 'embed',
+    label: 'Embebido (Genially, YouTube, Vimeo, etc.)',
+    hint: 'Se muestra directamente en la página del curso. Ideal para contenido que no requiere reunión en vivo.',
+  },
+  {
+    value: 'external_link',
+    label: 'Link externo (Google Meet, Teams, Zoom)',
+    hint: 'Se muestra como botón para abrir en pestaña nueva. Ideal para reuniones en vivo.',
+  },
 ];
 
 const emptyForm = {
@@ -36,7 +47,12 @@ const emptyForm = {
   price: '',
   currency: 'ARS',
   active: true,
-  geniallyUrl: '',
+  category: '',
+  duration: '',
+  featured: false,
+  imageUrl: '',
+  contentType: 'embed',
+  contentUrl: '',
 };
 
 const isValidSlug = (slug) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);
@@ -86,7 +102,12 @@ function CapsulaForm() {
         price: String(p.price ?? ''),
         currency: p.currency || 'ARS',
         active: p.active !== false,
-        geniallyUrl: p.geniallyUrl || '',
+        category: p.category || '',
+        duration: p.duration || '',
+        featured: p.featured === true,
+        imageUrl: p.imageUrl || '',
+        contentType: p.contentType || 'embed',
+        contentUrl: p.contentUrl || p.geniallyUrl || '',
       });
     } catch (err) {
       console.error('[CapsulaForm] fetch error:', err);
@@ -106,7 +127,6 @@ function CapsulaForm() {
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  // Auto-genera slug desde el título si estamos creando y el slug está vacío
   const handleTitleChange = (e) => {
     const value = e.target.value;
     setForm((prev) => {
@@ -127,8 +147,11 @@ function CapsulaForm() {
     if (!form.description.trim()) errors.description = 'La descripción es obligatoria.';
     const priceNum = Number(form.price);
     if (!form.price || isNaN(priceNum) || priceNum <= 0) errors.price = 'El precio debe ser mayor a 0.';
-    if (!form.geniallyUrl.trim()) errors.geniallyUrl = 'La URL de Genially es obligatoria.';
-    else if (!isValidUrl(form.geniallyUrl)) errors.geniallyUrl = 'La URL debe empezar con http:// o https://.';
+    if (!form.category.trim()) errors.category = 'La categoría es obligatoria.';
+    if (!form.duration.trim()) errors.duration = 'La duración es obligatoria.';
+    if (!form.contentUrl.trim()) errors.contentUrl = 'La URL del contenido es obligatoria.';
+    else if (!isValidUrl(form.contentUrl)) errors.contentUrl = 'La URL debe empezar con http:// o https://.';
+    if (form.imageUrl && !isValidUrl(form.imageUrl)) errors.imageUrl = 'La URL de la imagen debe empezar con http:// o https://.';
     return errors;
   };
 
@@ -155,7 +178,6 @@ function CapsulaForm() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // Si el servidor devolvió errores de validación, mapearlos
         if (body.validation && Array.isArray(body.validation)) {
           const serverErrors = {};
           body.validation.forEach((msg) => {
@@ -168,9 +190,8 @@ function CapsulaForm() {
       }
       toast.success(
         body.created ? 'Cápsula creada' : 'Cambios guardados',
-        `${body.product.title} ${body.created ? 'está disponible en el sitio' : 'se actualizó correctamente'}.`
+        `${body.product.title} ${body.created ? 'está disponible' : 'se actualizó correctamente'}.`
       );
-      // Redirigir a la lista tras 1s para que se lea el toast
       setTimeout(() => navigate('/admin/capsulas'), 1000);
     } catch (err) {
       console.error('[CapsulaForm] submit error:', err);
@@ -179,13 +200,12 @@ function CapsulaForm() {
     }
   };
 
+  const contentTypeOption = CONTENT_TYPE_OPTIONS.find((o) => o.value === form.contentType);
+
   if (loading) {
     return (
       <>
-        <PageHeader
-          title={isEditing ? 'Editar cápsula' : 'Nueva cápsula'}
-          subtitle="Cargando datos..."
-        />
+        <PageHeader title={isEditing ? 'Editar cápsula' : 'Nueva cápsula'} subtitle="Cargando datos..." />
         <LoadingState message="Cargando cápsula..." />
       </>
     );
@@ -194,10 +214,7 @@ function CapsulaForm() {
   if (loadError) {
     return (
       <>
-        <PageHeader
-          title="Editar cápsula"
-          subtitle="No pudimos cargar los datos."
-        />
+        <PageHeader title="Editar cápsula" subtitle="No pudimos cargar los datos." />
         <ErrorState
           title="Cápsula no disponible"
           message={loadError}
@@ -224,151 +241,280 @@ function CapsulaForm() {
       />
 
       <form onSubmit={handleSubmit} className={styles.form} noValidate>
-        <div className={styles.grid}>
-          <div className={styles.field}>
-            <label htmlFor="title" className={styles.label}>
-              Título <span className={styles.required} aria-hidden="true">*</span>
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={form.title}
-              onChange={handleTitleChange}
-              className={fieldErrors.title ? styles.inputError : styles.input}
-              disabled={saving}
-              aria-invalid={!!fieldErrors.title}
-              placeholder="Ej: Vulnerabilidad Social y..."
-            />
-            {fieldErrors.title && <span className={styles.errorText}>{fieldErrors.title}</span>}
+        {/* Bloque 1: Datos principales */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Datos principales</legend>
+
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label htmlFor="title" className={styles.label}>
+                Título <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={form.title}
+                onChange={handleTitleChange}
+                className={fieldErrors.title ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.title}
+                placeholder="Ej: Vulnerabilidad Social y..."
+              />
+              {fieldErrors.title && <span className={styles.errorText}>{fieldErrors.title}</span>}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="slug" className={styles.label}>
+                Slug (URL) <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="slug"
+                type="text"
+                value={form.slug}
+                onChange={handleChange('slug')}
+                className={fieldErrors.slug ? styles.inputError : styles.input}
+                disabled={saving || isEditing}
+                aria-invalid={!!fieldErrors.slug}
+                placeholder="vulnerabilidad-social"
+                aria-describedby="slug-hint"
+              />
+              <span id="slug-hint" className={styles.hint}>
+                {isEditing
+                  ? 'El slug no puede cambiarse una vez creada la cápsula.'
+                  : 'Se genera desde el título. Solo letras minúsculas, números y guiones.'}
+              </span>
+              {fieldErrors.slug && <span className={styles.errorText}>{fieldErrors.slug}</span>}
+            </div>
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="slug" className={styles.label}>
-              Slug (URL) <span className={styles.required} aria-hidden="true">*</span>
-            </label>
+            <label htmlFor="subtitle" className={styles.label}>Subtítulo</label>
             <input
-              id="slug"
+              id="subtitle"
               type="text"
-              value={form.slug}
-              onChange={handleChange('slug')}
-              className={fieldErrors.slug ? styles.inputError : styles.input}
-              disabled={saving || isEditing}
-              aria-invalid={!!fieldErrors.slug}
-              placeholder="vulnerabilidad-social"
-              aria-describedby="slug-hint"
+              value={form.subtitle}
+              onChange={handleChange('subtitle')}
+              className={styles.input}
+              disabled={saving}
+              placeholder="Cápsula Formativa"
             />
-            <span id="slug-hint" className={styles.hint}>
-              {isEditing
-                ? 'El slug no puede cambiarse una vez creada la cápsula.'
-                : 'Se genera automáticamente desde el título. Solo letras minúsculas, números y guiones.'}
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="description" className={styles.label}>
+              Descripción <span className={styles.required} aria-hidden="true">*</span>
+            </label>
+            <textarea
+              id="description"
+              value={form.description}
+              onChange={handleChange('description')}
+              className={fieldErrors.description ? styles.textareaError : styles.textarea}
+              disabled={saving}
+              aria-invalid={!!fieldErrors.description}
+              rows={5}
+              placeholder="Describí el contenido y el enfoque de la cápsula..."
+              aria-describedby="description-hint"
+            />
+            <span id="description-hint" className={styles.hint}>
+              Se muestra completa en el detalle público. En las cards del listado se trunca automáticamente.
             </span>
-            {fieldErrors.slug && <span className={styles.errorText}>{fieldErrors.slug}</span>}
+            {fieldErrors.description && <span className={styles.errorText}>{fieldErrors.description}</span>}
           </div>
-        </div>
+        </fieldset>
 
-        <div className={styles.field}>
-          <label htmlFor="subtitle" className={styles.label}>Subtítulo</label>
-          <input
-            id="subtitle"
-            type="text"
-            value={form.subtitle}
-            onChange={handleChange('subtitle')}
-            className={styles.input}
-            disabled={saving}
-            placeholder="Cápsula Formativa"
-          />
-        </div>
+        {/* Bloque 2: Categorización y presentación */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Categorización y presentación</legend>
 
-        <div className={styles.field}>
-          <label htmlFor="description" className={styles.label}>
-            Descripción <span className={styles.required} aria-hidden="true">*</span>
-          </label>
-          <textarea
-            id="description"
-            value={form.description}
-            onChange={handleChange('description')}
-            className={fieldErrors.description ? styles.textareaError : styles.textarea}
-            disabled={saving}
-            aria-invalid={!!fieldErrors.description}
-            rows={5}
-            placeholder="Describí el contenido y el enfoque de la cápsula..."
-          />
-          {fieldErrors.description && <span className={styles.errorText}>{fieldErrors.description}</span>}
-        </div>
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label htmlFor="category" className={styles.label}>
+                Categoría <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="category"
+                type="text"
+                value={form.category}
+                onChange={handleChange('category')}
+                className={fieldErrors.category ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.category}
+                placeholder="Ej: Intervención Social"
+                aria-describedby="category-hint"
+              />
+              <span id="category-hint" className={styles.hint}>
+                Se muestra como tag en las cards. Ejemplos: Derechos Humanos, Salud Mental, Familia e Infancias.
+              </span>
+              {fieldErrors.category && <span className={styles.errorText}>{fieldErrors.category}</span>}
+            </div>
 
-        <div className={styles.grid}>
+            <div className={styles.field}>
+              <label htmlFor="duration" className={styles.label}>
+                Duración <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="duration"
+                type="text"
+                value={form.duration}
+                onChange={handleChange('duration')}
+                className={fieldErrors.duration ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.duration}
+                placeholder="Ej: 25 horas acreditadas"
+              />
+              {fieldErrors.duration && <span className={styles.errorText}>{fieldErrors.duration}</span>}
+            </div>
+          </div>
+
           <div className={styles.field}>
-            <label htmlFor="price" className={styles.label}>
-              Precio <span className={styles.required} aria-hidden="true">*</span>
-            </label>
+            <label htmlFor="imageUrl" className={styles.label}>URL de la imagen</label>
             <input
-              id="price"
-              type="number"
-              min="0"
-              step="1"
-              value={form.price}
-              onChange={handleChange('price')}
-              className={fieldErrors.price ? styles.inputError : styles.input}
+              id="imageUrl"
+              type="url"
+              value={form.imageUrl}
+              onChange={handleChange('imageUrl')}
+              className={fieldErrors.imageUrl ? styles.inputError : styles.input}
               disabled={saving}
-              aria-invalid={!!fieldErrors.price}
-              placeholder="28000"
+              aria-invalid={!!fieldErrors.imageUrl}
+              placeholder="https://..."
+              aria-describedby="image-hint"
             />
-            {fieldErrors.price && <span className={styles.errorText}>{fieldErrors.price}</span>}
+            <span id="image-hint" className={styles.hint}>
+              Imagen que se muestra en las cards del listado. Si no la ponés, se usa un placeholder por default.
+            </span>
+            {fieldErrors.imageUrl && <span className={styles.errorText}>{fieldErrors.imageUrl}</span>}
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="currency" className={styles.label}>Moneda</label>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={form.featured}
+                onChange={handleChange('featured')}
+                disabled={saving}
+              />
+              <span>
+                <span className={styles.checkboxTitle}>Cápsula destacada</span>
+                <span className={styles.checkboxHint}>
+                  Aparece como cápsula destacada arriba del listado. Si hay varias marcadas, se destaca la más reciente.
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        {/* Bloque 3: Precio */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Precio</legend>
+
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label htmlFor="price" className={styles.label}>
+                Precio <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="price"
+                type="number"
+                min="0"
+                step="1"
+                value={form.price}
+                onChange={handleChange('price')}
+                className={fieldErrors.price ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.price}
+                placeholder="28000"
+              />
+              {fieldErrors.price && <span className={styles.errorText}>{fieldErrors.price}</span>}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="currency" className={styles.label}>Moneda</label>
+              <select
+                id="currency"
+                value={form.currency}
+                onChange={handleChange('currency')}
+                className={styles.input}
+                disabled={saving}
+              >
+                {CURRENCY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        {/* Bloque 4: Contenido */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Contenido del curso</legend>
+
+          <div className={styles.field}>
+            <label htmlFor="contentType" className={styles.label}>Tipo de contenido</label>
             <select
-              id="currency"
-              value={form.currency}
-              onChange={handleChange('currency')}
+              id="contentType"
+              value={form.contentType}
+              onChange={handleChange('contentType')}
               className={styles.input}
               disabled={saving}
             >
-              {CURRENCY_OPTIONS.map((opt) => (
+              {CONTENT_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
+            {contentTypeOption && (
+              <span className={styles.hint}>{contentTypeOption.hint}</span>
+            )}
           </div>
-        </div>
 
-        <div className={styles.field}>
-          <label htmlFor="geniallyUrl" className={styles.label}>
-            URL de Genially <span className={styles.required} aria-hidden="true">*</span>
-          </label>
-          <input
-            id="geniallyUrl"
-            type="url"
-            value={form.geniallyUrl}
-            onChange={handleChange('geniallyUrl')}
-            className={fieldErrors.geniallyUrl ? styles.inputError : styles.input}
-            disabled={saving}
-            aria-invalid={!!fieldErrors.geniallyUrl}
-            placeholder="https://view.genially.com/..."
-            aria-describedby="genially-hint"
-          />
-          <span id="genially-hint" className={styles.hint}>
-            URL de la vista pública del contenido en Genially.
-          </span>
-          {fieldErrors.geniallyUrl && <span className={styles.errorText}>{fieldErrors.geniallyUrl}</span>}
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.checkboxLabel}>
+          <div className={styles.field}>
+            <label htmlFor="contentUrl" className={styles.label}>
+              URL del contenido <span className={styles.required} aria-hidden="true">*</span>
+            </label>
             <input
-              type="checkbox"
-              checked={form.active}
-              onChange={handleChange('active')}
+              id="contentUrl"
+              type="url"
+              value={form.contentUrl}
+              onChange={handleChange('contentUrl')}
+              className={fieldErrors.contentUrl ? styles.inputError : styles.input}
               disabled={saving}
+              aria-invalid={!!fieldErrors.contentUrl}
+              placeholder={
+                form.contentType === 'external_link'
+                  ? 'https://meet.google.com/... o https://teams.microsoft.com/...'
+                  : 'https://view.genially.com/... o https://youtube.com/...'
+              }
+              aria-describedby="content-hint"
             />
-            <span>
-              <span className={styles.checkboxTitle}>Cápsula activa</span>
-              <span className={styles.checkboxHint}>
-                Cuando está activa, aparece en el sitio público y puede comprarse.
-              </span>
+            <span id="content-hint" className={styles.hint}>
+              {form.contentType === 'external_link'
+                ? 'El comprador va a ver un botón que abre este link en pestaña nueva.'
+                : 'El contenido se va a mostrar embebido en la página del curso. Verificá que la URL permita embed.'}
             </span>
-          </label>
-        </div>
+            {fieldErrors.contentUrl && <span className={styles.errorText}>{fieldErrors.contentUrl}</span>}
+          </div>
+        </fieldset>
+
+        {/* Bloque 5: Publicación */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Publicación</legend>
+
+          <div className={styles.field}>
+            <label className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={handleChange('active')}
+                disabled={saving}
+              />
+              <span>
+                <span className={styles.checkboxTitle}>Cápsula activa</span>
+                <span className={styles.checkboxHint}>
+                  Cuando está activa, aparece en el sitio público y puede comprarse.
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
         <div className={styles.formActions}>
           <button
@@ -395,13 +541,12 @@ function CapsulaForm() {
   );
 }
 
-// Helper: normaliza un string a slug candidato
 function autoSlug(text) {
   return String(text)
     .trim()
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // sacar tildes
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')

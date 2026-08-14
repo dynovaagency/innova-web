@@ -3,7 +3,9 @@
  *
  * Un producto tiene:
  *   - Campos comunes: id/slug/title/description/price/currency/active/type.
- *   - Campos específicos por type (ver TYPE_SPECIFIC_FIELDS).
+ *   - Campos específicos por type (ver TYPE_SPECIFIC_VALIDATORS).
+ *   - Campos de presentación pública (Entrega 3.5): category, duration,
+ *     featured, imageUrl, contentType, contentUrl.
  *
  * validateProduct(product) devuelve { valid, errors }.
  * Si valid es false, errors es un array de strings describiendo problemas.
@@ -12,34 +14,48 @@
  *   - Al insertar/actualizar productos vía el panel admin (Sprint 2).
  *   - Al seedear el catálogo desde cursos.js (Entrega 4).
  *   - Como sanity check en products-list.js antes de servir al frontend.
+ *   - Como defensa en profundidad dentro de productsRepo.insert/update/upsert.
  */
 
-import { PRODUCT_TYPES, isValidType } from './types.js';
+import { PRODUCT_TYPES, isValidType, CONTENT_TYPES, isValidContentType } from './types.js';
 
 /**
  * Campos requeridos para todo producto, sin importar el type.
+ * Actualizado en Entrega 3.5 con los campos de presentación pública.
  */
-const COMMON_REQUIRED_FIELDS = ['slug', 'type', 'title', 'price', 'currency', 'active'];
+const COMMON_REQUIRED_FIELDS = [
+  'slug', 'type', 'title', 'price', 'currency', 'active',
+  'category', 'duration', 'contentType', 'contentUrl',
+];
+
+const isValidUrl = (url) => {
+  if (typeof url !== 'string' || !url.trim()) return false;
+  try {
+    const u = new URL(url);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Campos específicos por type. Cada value es una función que recibe
  * el producto y devuelve un array de errores (vacío si válido).
  *
+ * NOTA: desde Entrega 3.5 el contentType y contentUrl son comunes, no
+ * específicos del tipo. Este validador ahora hace validaciones extra
+ * que solo aplican a capsula_genially (ej. warnings específicos).
+ *
  * Al agregar un tipo nuevo, sumar acá su validador específico.
  */
 const TYPE_SPECIFIC_VALIDATORS = {
   [PRODUCT_TYPES.CAPSULA_GENIALLY]: (product) => {
-    const errors = [];
-    if (!product.geniallyUrl || typeof product.geniallyUrl !== 'string') {
-      errors.push('geniallyUrl es requerido para productos tipo capsula_genially');
-    }
-    if (product.geniallyUrl && !product.geniallyUrl.startsWith('https://')) {
-      errors.push('geniallyUrl debe empezar con https://');
-    }
-    return errors;
+    // No hay validaciones específicas adicionales a las comunes.
+    // Se mantiene la key para preservar el patrón.
+    return [];
   },
   // Futuro:
-  // [PRODUCT_TYPES.CURSO_SINCRONICO]: (product) => { ... valida meetLink, fechaInicio, cupo, ... }
+  // [PRODUCT_TYPES.CURSO_SINCRONICO]: (product) => { ... valida fechaInicio, cupo, ... }
 };
 
 /**
@@ -54,8 +70,17 @@ export const validateProduct = (product) => {
   }
 
   // 2. Chequeo de campos comunes requeridos.
+  // Aceptamos geniallyUrl como fallback de contentUrl (retrocompatibilidad
+  // durante la migración de la Entrega 3.5).
+  const productToValidate = {
+    ...product,
+    contentUrl: product.contentUrl || product.geniallyUrl,
+    contentType: product.contentType || CONTENT_TYPES.EMBED,
+  };
+
   for (const field of COMMON_REQUIRED_FIELDS) {
-    if (product[field] === undefined || product[field] === null || product[field] === '') {
+    const value = productToValidate[field];
+    if (value === undefined || value === null || value === '') {
       errors.push(`Campo requerido faltante: ${field}`);
     }
   }
@@ -65,7 +90,17 @@ export const validateProduct = (product) => {
     errors.push(`Type inválido: ${product.type}`);
   }
 
-  // 4. Validaciones de tipo específico.
+  // 4. ContentType debe ser válido.
+  if (productToValidate.contentType && !isValidContentType(productToValidate.contentType)) {
+    errors.push(`contentType inválido: ${productToValidate.contentType}. Debe ser embed o external_link.`);
+  }
+
+  // 5. ContentUrl debe ser URL válida.
+  if (productToValidate.contentUrl && !isValidUrl(productToValidate.contentUrl)) {
+    errors.push('contentUrl debe empezar con http:// o https://');
+  }
+
+  // 6. Validaciones de tipo específico.
   if (product.type && isValidType(product.type)) {
     const typeValidator = TYPE_SPECIFIC_VALIDATORS[product.type];
     if (typeValidator) {
@@ -73,7 +108,7 @@ export const validateProduct = (product) => {
     }
   }
 
-  // 5. Sanity checks numéricos y de dominio.
+  // 7. Sanity checks numéricos y de dominio.
   if (product.price !== undefined && (typeof product.price !== 'number' || product.price < 0)) {
     errors.push('price debe ser un número >= 0');
   }
@@ -84,6 +119,14 @@ export const validateProduct = (product) => {
     errors.push('active debe ser boolean');
   }
 
+  // 8. Validaciones de campos de presentación (Entrega 3.5).
+  if (product.featured !== undefined && typeof product.featured !== 'boolean') {
+    errors.push('featured debe ser boolean');
+  }
+  if (product.imageUrl && !isValidUrl(product.imageUrl)) {
+    errors.push('imageUrl debe empezar con http:// o https://');
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -92,8 +135,8 @@ export const validateProduct = (product) => {
 
 /**
  * Helper: devuelve la estructura mínima de un producto con los campos
- * comunes. Útil para el ABM del panel: se arranca con esto y se le
- * suman los campos específicos del tipo.
+ * comunes y de presentación. Útil para el ABM del panel: se arranca con
+ * esto y se le suman los campos específicos del tipo si hace falta.
  */
 export const emptyProduct = (type = PRODUCT_TYPES.CAPSULA_GENIALLY) => ({
   slug: '',
@@ -103,4 +146,10 @@ export const emptyProduct = (type = PRODUCT_TYPES.CAPSULA_GENIALLY) => ({
   price: 0,
   currency: 'ARS',
   active: true,
+  category: '',
+  duration: '',
+  featured: false,
+  imageUrl: '',
+  contentType: CONTENT_TYPES.EMBED,
+  contentUrl: '',
 });
