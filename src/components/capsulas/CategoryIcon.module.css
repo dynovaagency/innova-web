@@ -1,0 +1,19 @@
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  color: var(--color-secondary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.icon_sm {
+  width: 36px;
+  height: 36px;
+}
+
+.icon_md {
+  width: 48px;
+  height: 48px;
+}

@@ -14,6 +14,8 @@ import PagoPendiente from './pages/PagoPendiente.jsx';
 import PagoFallido from './pages/PagoFallido.jsx';
 import MockCheckout from './pages/MockCheckout.jsx';
 import RecuperarAcceso from './pages/RecuperarAcceso.jsx';
+import Capsulas from './pages/Capsulas.jsx';
+import CapsulaDetallePublica from './pages/CapsulaDetallePublica.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -35,6 +37,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/quienes-somos" element={<QuienesSomos />} />
         <Route path="/servicios" element={<Servicios />} />
+        <Route path="/servicios/capsulas" element={<Capsulas />} />
+        <Route path="/servicios/:slug" element={<CapsulaDetallePublica />} />
         <Route path="/servicios/capsula-formativa" element={<CapsulaDetalle />} />
         <Route path="/formaciones" element={<Formaciones />} />
         <Route path="/orientacion" element={<Orientacion />} />
