@@ -41,9 +41,6 @@ function MockCheckout() {
       const data = await res.json();
       const targetSlug = data.cursoSlug || slug;
       const targetUrl = `/curso/${targetSlug}?ref=${ref}`;
-      console.log('[mock-approve] respuesta:', data);
-      console.log('[mock-approve] slug elegido:', targetSlug, '(data.cursoSlug:', data.cursoSlug, ', query slug:', slug, ')');
-      console.log('[mock-approve] navegando a:', targetUrl);
       if (!targetSlug) {
         throw new Error('No pudimos determinar el curso. Contactá a soporte.');
       }
