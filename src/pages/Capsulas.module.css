@@ -1,16 +1,18 @@
 .page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-2xl) var(--space-lg);
+  width: 100%;
+  background-color: var(--color-background);
+  padding: var(--space-3xl) 0 var(--space-4xl);
 }
 
 .header {
+  max-width: var(--container-max);
+  margin: 0 auto var(--space-2xl);
+  padding: 0 var(--space-xl);
   text-align: center;
-  margin-bottom: var(--space-2xl);
 }
 
 .title {
-  font-size: 3rem;
+  font-size: clamp(var(--font-size-3xl), 4vw, var(--font-size-5xl));
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   margin: 0 0 var(--space-sm);
@@ -18,33 +20,33 @@
   line-height: var(--line-height-tight);
 }
 
-@media (max-width: 720px) {
-  .title { font-size: 2.25rem; }
-}
-
 .subtitle {
   font-size: var(--font-size-md);
   color: var(--color-text-muted);
-  max-width: 560px;
+  max-width: 580px;
   margin: 0 auto;
   line-height: var(--line-height-relaxed);
 }
 
 .loading {
-  padding: var(--space-3xl) 0;
+  padding: var(--space-4xl) 0;
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }
 
 .featuredWrap {
-  margin-bottom: var(--space-2xl);
+  max-width: var(--container-max);
+  margin: 0 auto var(--space-2xl);
+  padding: 0 var(--space-xl);
 }
 
 .controls {
+  max-width: var(--container-max);
+  margin: 0 auto var(--space-xl);
+  padding: 0 var(--space-xl);
   display: flex;
   gap: var(--space-md);
-  margin-bottom: var(--space-xl);
   align-items: center;
 }
 
@@ -73,12 +75,12 @@
   width: 100%;
   padding: var(--space-sm) var(--space-md) var(--space-sm) 44px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   background-color: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: var(--font-size-sm);
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .searchInput:focus {
@@ -90,12 +92,12 @@
 .filtersBtn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-lg);
   background-color: transparent;
   color: var(--color-primary);
   border: 1px solid var(--color-secondary);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
@@ -106,12 +108,11 @@
 }
 
 .filtersBtn:hover {
-  background-color: rgba(130, 198, 197, 0.06);
+  background-color: var(--color-secondary-soft);
 }
 
 .filtersBtn_active {
   background-color: var(--color-secondary);
-  color: var(--color-primary);
 }
 
 .filtersBadge {
@@ -121,14 +122,16 @@
   width: 8px;
   height: 8px;
   background-color: var(--color-accent);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .grid {
+  max-width: var(--container-max);
+  margin: 0 auto var(--space-2xl);
+  padding: 0 var(--space-xl);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-lg);
-  margin-bottom: var(--space-2xl);
 }
 
 @media (max-width: 900px) {
@@ -140,8 +143,10 @@
 }
 
 .empty {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-4xl) var(--space-lg);
   text-align: center;
-  padding: var(--space-3xl) var(--space-md);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -150,8 +155,8 @@
 
 .emptyIcon {
   color: var(--color-text-muted);
-  opacity: 0.6;
-  margin-bottom: var(--space-2xs);
+  opacity: 0.5;
+  margin-bottom: var(--space-xs);
 }
 
 .emptyTitle {
@@ -168,6 +173,9 @@
 }
 
 .pagination {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,12 +186,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 var(--space-2xs);
+  min-width: 40px;
+  height: 40px;
+  padding: 0 var(--space-xs);
   background-color: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -193,7 +201,7 @@
 }
 
 .pageBtn:hover:not(:disabled):not(.pageBtn_active) {
-  background-color: var(--color-background);
+  background-color: var(--color-surface);
 }
 
 .pageBtn_active {
