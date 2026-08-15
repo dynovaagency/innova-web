@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Mail, Copy, ExternalLink, CheckCircle } from 'lucide-react';
 import PageHeader from '../../components/admin/PageHeader.jsx';
 import LoadingState from '../../components/admin/LoadingState.jsx';
 import ErrorState from '../../components/admin/ErrorState.jsx';
@@ -45,6 +45,7 @@ function PagoDetalle() {
   const [error, setError] = useState(null);
 
   const [confirmResend, setConfirmResend] = useState({ open: false, loading: false });
+  const [confirmApprove, setConfirmApprove] = useState({ open: false, loading: false });
 
   const fetchPayment = useCallback(async () => {
     setLoading(true);
@@ -98,6 +99,59 @@ function PagoDetalle() {
       toast.error('No se pudo reenviar', err.message);
       setConfirmResend((prev) => ({ ...prev, loading: false }));
     }
+    setConfirmApprove((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch('/.netlify/functions/admin-payment-mark-approved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ref: externalReference }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || 'No se pudo aprobar el pago');
+      }
+      toast.success(
+        'Pago aprobado',
+        body.emailSent
+          ? `Se envió el acceso a ${body.to}.`
+          : `Pago aprobado. El email no se pudo enviar automáticamente — reintentá con "Reenviar acceso".`
+      );
+      setConfirmApprove({ open: false, loading: false });
+      fetchPayment();
+    } catch (err) {
+      console.error('[PagoDetalle] approve error:', err);
+      toast.error('No se pudo aprobar', err.message);
+      setConfirmApprove((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleApproveConfirm = async () => {
+    setConfirmApprove((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch('/.netlify/functions/admin-payment-mark-approved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ref: externalReference }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || 'No se pudo aprobar el pago');
+      }
+      toast.success(
+        'Pago aprobado',
+        body.emailSent
+          ? `Se envió el acceso a ${body.to}.`
+          : 'Pago aprobado. El email no se pudo enviar automáticamente — reintentá con Reenviar acceso.'
+      );
+      setConfirmApprove({ open: false, loading: false });
+      fetchPayment();
+    } catch (err) {
+      console.error('[PagoDetalle] approve error:', err);
+      toast.error('No se pudo aprobar', err.message);
+      setConfirmApprove((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const handleCopy = async (text, label) => {
@@ -142,6 +196,11 @@ function PagoDetalle() {
   if (!payment) return null;
 
   const canResend = payment.status === 'approved' && payment.buyerEmail;
+  const isManualProvider = ['transferencia', 'gocuotas'].includes(payment.provider);
+  const canApprove =
+    payment.status === 'pending' &&
+    isManualProvider &&
+    payment.buyerEmail;
 
   return (
     <>
@@ -154,22 +213,35 @@ function PagoDetalle() {
         title="Detalle del pago"
         subtitle={payment.externalReference}
         actions={
-          <button
-            type="button"
-            onClick={() => setConfirmResend({ open: true, loading: false })}
-            disabled={!canResend}
-            className={styles.primaryBtn}
-            title={
-              !canResend
-                ? payment.status !== 'approved'
-                  ? 'Solo disponible para pagos aprobados'
-                  : 'El pago no tiene email asociado'
-                : 'Reenviar email de acceso al comprador'
-            }
-          >
-            <Mail size={16} aria-hidden="true" />
-            Reenviar acceso
-          </button>
+          <div className={styles.actionsRow}>
+            {canApprove && (
+              <button
+                type="button"
+                onClick={() => setConfirmApprove({ open: true, loading: false })}
+                className={styles.primaryBtn}
+                title="Confirmar que recibiste el pago y enviar el acceso al comprador"
+              >
+                <CheckCircle size={16} aria-hidden="true" />
+                Marcar como aprobado
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setConfirmResend({ open: true, loading: false })}
+              disabled={!canResend}
+              className={canApprove ? styles.secondaryBtn : styles.primaryBtn}
+              title={
+                !canResend
+                  ? payment.status !== 'approved'
+                    ? 'Solo disponible para pagos aprobados'
+                    : 'El pago no tiene email asociado'
+                  : 'Reenviar email de acceso al comprador'
+              }
+            >
+              <Mail size={16} aria-hidden="true" />
+              Reenviar acceso
+            </button>
+          </div>
         }
       />
 
@@ -379,6 +451,15 @@ function PagoDetalle() {
         loading={confirmResend.loading}
         onConfirm={handleResendConfirm}
         onCancel={() => setConfirmResend({ open: false, loading: false })}
+      />
+      <ConfirmDialog
+        open={confirmApprove.open}
+        title="¿Marcar este pago como aprobado?"
+        message={`Vas a confirmar que recibiste el pago por transferencia o Go Cuotas del comprador ${payment.buyerEmail}. Al confirmar, se le va a enviar automáticamente el link de acceso al curso.`}
+        confirmLabel="Sí, aprobar y enviar acceso"
+        loading={confirmApprove.loading}
+        onConfirm={handleApproveConfirm}
+        onCancel={() => setConfirmApprove({ open: false, loading: false })}
       />
 
       <Toast {...toast.props} />

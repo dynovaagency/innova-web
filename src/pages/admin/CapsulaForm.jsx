@@ -25,6 +25,11 @@ const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD (dólares)' },
 ];
 
+const MODALIDAD_OPTIONS = [
+  { value: 'capsula', label: 'Cápsula (autoaprendizaje)' },
+  { value: 'curso', label: 'Curso (con clases en vivo o cohorte)' },
+];
+
 const CONTENT_TYPE_OPTIONS = [
   {
     value: 'embed',
@@ -53,6 +58,7 @@ const emptyForm = {
   imageUrl: '',
   contentType: 'embed',
   contentUrl: '',
+  modalidad: 'capsula',
 };
 
 const isValidSlug = (slug) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);
@@ -108,6 +114,7 @@ function CapsulaForm() {
         imageUrl: p.imageUrl || '',
         contentType: p.contentType || 'embed',
         contentUrl: p.contentUrl || p.geniallyUrl || '',
+        modalidad: p.modalidad || 'capsula',
       });
     } catch (err) {
       console.error('[CapsulaForm] fetch error:', err);
@@ -383,6 +390,25 @@ function CapsulaForm() {
               Imagen que se muestra en las cards del listado. Si no la ponés, se usa un placeholder por default.
             </span>
             {fieldErrors.imageUrl && <span className={styles.errorText}>{fieldErrors.imageUrl}</span>}
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="modalidad" className={styles.label}>Modalidad</label>
+            <select
+              id="modalidad"
+              value={form.modalidad}
+              onChange={handleChange('modalidad')}
+              className={styles.input}
+              disabled={saving}
+              aria-describedby="modalidad-hint"
+            >
+              {MODALIDAD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <span id="modalidad-hint" className={styles.hint}>
+              Determina el label que se muestra en las cards (&quot;CÁPSULA&quot; o &quot;CURSO&quot;). No afecta el flujo técnico.
+            </span>
           </div>
 
           <div className={styles.field}>

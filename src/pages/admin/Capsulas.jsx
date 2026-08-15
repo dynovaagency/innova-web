@@ -26,6 +26,7 @@ const FILTER_OPTIONS = [
   { value: 'inactive', label: 'Inactivas' },
 ];
 
+
 function Capsulas() {
   const navigate = useNavigate();
   const toast = useToast();

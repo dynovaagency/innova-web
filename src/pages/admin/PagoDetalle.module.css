@@ -270,3 +270,9 @@
   max-height: 400px;
   overflow-y: auto;
 }
+
+.actionsRow {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
