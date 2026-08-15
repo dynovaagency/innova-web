@@ -361,9 +361,9 @@ function PaymentModal({
                 Vas a ser redirigido al sitio de Go Cuotas para completar el pago por{' '}
                 <strong>{priceLabel} ARS</strong>.
               </p>
-
+      
               <div className={styles.gocuotasCta}>
-                
+                <a
                   href={GOCUOTAS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
