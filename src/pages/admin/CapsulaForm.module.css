@@ -216,3 +216,14 @@
   border-bottom: 1px solid var(--color-border);
   width: 100%;
 }
+
+.blockIntro {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-background);
+  border-left: 3px solid var(--color-secondary);
+  border-radius: var(--radius-sm);
+}

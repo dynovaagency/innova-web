@@ -15,19 +15,17 @@ import styles from './CapsulaForm.module.css';
  *   - Crear:  /admin/capsulas/nueva  (params.slug === undefined)
  *   - Editar: /admin/capsulas/:slug/editar
  *
- * Campos nuevos en Entrega 3.5:
- *   - category, duration, featured, imageUrl, contentType, contentUrl.
- *   - geniallyUrl deprecated (reemplazado por contentUrl).
+ * Sprint 2.7: precios por método de pago (opcionales).
+ *   - priceTransferencia: precio final si eligen transferencia.
+ *   - priceGocuotas: precio final si eligen Go Cuotas.
+ *   - gocuotasUrl: link específico de Go Cuotas para este producto.
+ *
+ * Si un producto no tiene precio específico, el flujo usa el precio base.
  */
 
 const CURRENCY_OPTIONS = [
   { value: 'ARS', label: 'ARS (pesos argentinos)' },
   { value: 'USD', label: 'USD (dólares)' },
-];
-
-const MODALIDAD_OPTIONS = [
-  { value: 'capsula', label: 'Cápsula (autoaprendizaje)' },
-  { value: 'curso', label: 'Curso (con clases en vivo o cohorte)' },
 ];
 
 const CONTENT_TYPE_OPTIONS = [
@@ -41,6 +39,11 @@ const CONTENT_TYPE_OPTIONS = [
     label: 'Link externo (Google Meet, Teams, Zoom)',
     hint: 'Se muestra como botón para abrir en pestaña nueva. Ideal para reuniones en vivo.',
   },
+];
+
+const MODALIDAD_OPTIONS = [
+  { value: 'capsula', label: 'Cápsula (autoaprendizaje)' },
+  { value: 'curso', label: 'Curso (con clases en vivo o cohorte)' },
 ];
 
 const emptyForm = {
@@ -59,6 +62,9 @@ const emptyForm = {
   contentType: 'embed',
   contentUrl: '',
   modalidad: 'capsula',
+  priceTransferencia: '',
+  priceGocuotas: '',
+  gocuotasUrl: '',
 };
 
 const isValidSlug = (slug) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);
@@ -115,6 +121,9 @@ function CapsulaForm() {
         contentType: p.contentType || 'embed',
         contentUrl: p.contentUrl || p.geniallyUrl || '',
         modalidad: p.modalidad || 'capsula',
+        priceTransferencia: p.priceTransferencia ? String(p.priceTransferencia) : '',
+        priceGocuotas: p.priceGocuotas ? String(p.priceGocuotas) : '',
+        gocuotasUrl: p.gocuotasUrl || '',
       });
     } catch (err) {
       console.error('[CapsulaForm] fetch error:', err);
@@ -159,6 +168,20 @@ function CapsulaForm() {
     if (!form.contentUrl.trim()) errors.contentUrl = 'La URL del contenido es obligatoria.';
     else if (!isValidUrl(form.contentUrl)) errors.contentUrl = 'La URL debe empezar con http:// o https://.';
     if (form.imageUrl && !isValidUrl(form.imageUrl)) errors.imageUrl = 'La URL de la imagen debe empezar con http:// o https://.';
+
+    // Sprint 2.7: validaciones opcionales de precios por método
+    if (form.priceTransferencia) {
+      const p = Number(form.priceTransferencia);
+      if (isNaN(p) || p <= 0) errors.priceTransferencia = 'El precio por transferencia debe ser mayor a 0.';
+    }
+    if (form.priceGocuotas) {
+      const p = Number(form.priceGocuotas);
+      if (isNaN(p) || p <= 0) errors.priceGocuotas = 'El precio por Go Cuotas debe ser mayor a 0.';
+    }
+    if (form.gocuotasUrl && !isValidUrl(form.gocuotasUrl)) {
+      errors.gocuotasUrl = 'La URL debe empezar con http:// o https://.';
+    }
+
     return errors;
   };
 
@@ -181,6 +204,8 @@ function CapsulaForm() {
         body: JSON.stringify({
           ...form,
           price: Number(form.price),
+          priceTransferencia: form.priceTransferencia ? Number(form.priceTransferencia) : null,
+          priceGocuotas: form.priceGocuotas ? Number(form.priceGocuotas) : null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -407,7 +432,7 @@ function CapsulaForm() {
               ))}
             </select>
             <span id="modalidad-hint" className={styles.hint}>
-              Determina el label que se muestra en las cards (&quot;CÁPSULA&quot; o &quot;CURSO&quot;). No afecta el flujo técnico.
+              Determina el label que se muestra en las cards (CÁPSULA o CURSO). No afecta el flujo técnico.
             </span>
           </div>
 
@@ -436,7 +461,7 @@ function CapsulaForm() {
           <div className={styles.grid}>
             <div className={styles.field}>
               <label htmlFor="price" className={styles.label}>
-                Precio <span className={styles.required} aria-hidden="true">*</span>
+                Precio base <span className={styles.required} aria-hidden="true">*</span>
               </label>
               <input
                 id="price"
@@ -449,7 +474,11 @@ function CapsulaForm() {
                 disabled={saving}
                 aria-invalid={!!fieldErrors.price}
                 placeholder="28000"
+                aria-describedby="price-hint"
               />
+              <span id="price-hint" className={styles.hint}>
+                Es el precio general. Se usa por default para MercadoPago y para cualquier método sin precio específico.
+              </span>
               {fieldErrors.price && <span className={styles.errorText}>{fieldErrors.price}</span>}
             </div>
 
@@ -470,7 +499,83 @@ function CapsulaForm() {
           </div>
         </fieldset>
 
-        {/* Bloque 4: Contenido */}
+        {/* Bloque 4 (NUEVO Sprint 2.7): Precios por método de pago */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Precios por método de pago (opcional)</legend>
+
+          <p className={styles.blockIntro}>
+            Si querés cobrar un precio distinto al base según el método de pago elegido, completá los campos abajo. Si dejás alguno vacío, ese método usa el precio base.
+          </p>
+
+          <div className={styles.grid}>
+            <div className={styles.field}>
+              <label htmlFor="priceTransferencia" className={styles.label}>
+                Precio por transferencia bancaria
+              </label>
+              <input
+                id="priceTransferencia"
+                type="number"
+                min="0"
+                step="1"
+                value={form.priceTransferencia}
+                onChange={handleChange('priceTransferencia')}
+                className={fieldErrors.priceTransferencia ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.priceTransferencia}
+                placeholder="Ej: 110000 (dejar vacío para usar el precio base)"
+                aria-describedby="priceTransferencia-hint"
+              />
+              <span id="priceTransferencia-hint" className={styles.hint}>
+                Muchas veces se ofrece un descuento por transferencia. Dejalo vacío para usar el precio base.
+              </span>
+              {fieldErrors.priceTransferencia && <span className={styles.errorText}>{fieldErrors.priceTransferencia}</span>}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="priceGocuotas" className={styles.label}>
+                Precio por Go Cuotas
+              </label>
+              <input
+                id="priceGocuotas"
+                type="number"
+                min="0"
+                step="1"
+                value={form.priceGocuotas}
+                onChange={handleChange('priceGocuotas')}
+                className={fieldErrors.priceGocuotas ? styles.inputError : styles.input}
+                disabled={saving}
+                aria-invalid={!!fieldErrors.priceGocuotas}
+                placeholder="Ej: 125000 (dejar vacío para usar el precio base)"
+                aria-describedby="priceGocuotas-hint"
+              />
+              <span id="priceGocuotas-hint" className={styles.hint}>
+                Si el link de Go Cuotas tiene el monto en la URL, tiene que coincidir con este precio.
+              </span>
+              {fieldErrors.priceGocuotas && <span className={styles.errorText}>{fieldErrors.priceGocuotas}</span>}
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="gocuotasUrl" className={styles.label}>URL específica de Go Cuotas</label>
+            <input
+              id="gocuotasUrl"
+              type="url"
+              value={form.gocuotasUrl}
+              onChange={handleChange('gocuotasUrl')}
+              className={fieldErrors.gocuotasUrl ? styles.inputError : styles.input}
+              disabled={saving}
+              aria-invalid={!!fieldErrors.gocuotasUrl}
+              placeholder="https://www.gocuotas.com/payment_link/checkouts/..."
+              aria-describedby="gocuotasUrl-hint"
+            />
+            <span id="gocuotasUrl-hint" className={styles.hint}>
+              Link generado desde el panel de Go Cuotas para este producto. Si lo dejás vacío, el botón lleva al home de Go Cuotas.
+            </span>
+            {fieldErrors.gocuotasUrl && <span className={styles.errorText}>{fieldErrors.gocuotasUrl}</span>}
+          </div>
+        </fieldset>
+
+        {/* Bloque 5: Contenido */}
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Contenido del curso</legend>
 
@@ -520,7 +625,7 @@ function CapsulaForm() {
           </div>
         </fieldset>
 
-        {/* Bloque 5: Publicación */}
+        {/* Bloque 6: Publicación */}
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Publicación</legend>
 

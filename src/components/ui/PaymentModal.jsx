@@ -8,20 +8,16 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Modal de compra con selección de método de pago.
  *
- * Métodos soportados:
- *   - Mercado Pago (automático via webhook, flujo original)
- *   - Transferencia bancaria (manual, aprobación desde panel admin)
- *   - Go Cuotas (manual, link externo)
- *
- * Estados del modal:
- *   - SELECT: usuario elige método + ingresa email (paso 1).
- *   - REDIRECTING_MP: spinner mientras se llama a create-preference.
- *   - CONFIRM_TRANSFERENCIA: muestra datos bancarios + mensaje.
- *   - CONFIRM_GOCUOTAS: botón para abrir Go Cuotas en pestaña nueva.
- *   - ERROR: hubo un error al crear el pago.
+ * Sprint 2.7: soporta precios distintos por método.
+ *   - Cada card de método muestra su precio efectivo.
+ *   - Si el producto tiene priceTransferencia, se usa ese en vez del base.
+ *   - Si el producto tiene priceGocuotas, se usa ese en vez del base.
+ *   - Si el producto tiene gocuotasUrl, se usa ese link en vez del genérico.
  *
  * Props:
- *   - open, onClose, cursoSlug, priceLabel, cursoTitle, subtitle
+ *   - open, onClose
+ *   - product: producto completo del catálogo (para leer precios y URLs)
+ *   - subtitle (opcional): "CURSO" o "CÁPSULA" mostrado arriba del título
  */
 
 const STEP = {
@@ -32,14 +28,24 @@ const STEP = {
   ERROR: 'error',
 };
 
-function PaymentModal({
-  open,
-  onClose,
-  cursoSlug,
-  priceLabel,
-  cursoTitle = 'Cápsula Formativa',
-  subtitle,
-}) {
+// Formatea número a "$125.000"
+const formatARS = (amount) => {
+  const nf = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  return `$${nf.format(amount || 0)}`;
+};
+
+// Resuelve el precio efectivo según el método
+const resolvePrice = (product, methodId) => {
+  if (!product) return 0;
+  if (methodId === 'transferencia' && product.priceTransferencia) return product.priceTransferencia;
+  if (methodId === 'gocuotas' && product.priceGocuotas) return product.priceGocuotas;
+  return product.price;
+};
+
+function PaymentModal({ open, onClose, product, subtitle }) {
   const [step, setStep] = useState(STEP.SELECT);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [email, setEmail] = useState('');
@@ -51,10 +57,18 @@ function PaymentModal({
   const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
   const emailShowError = emailTouched && email.length > 0 && !emailValid;
 
-  // Reset del estado cuando el modal se cierra o se abre
+  // Calcular el precio efectivo del método seleccionado
+  const effectivePrice = useMemo(() => {
+    if (!selectedMethod || !product) return product?.price || 0;
+    return resolvePrice(product, selectedMethod.id);
+  }, [selectedMethod, product]);
+
+  // Link de Go Cuotas: usar el del producto si existe, si no el placeholder global
+  const gocuotasLink = product?.gocuotasUrl || GOCUOTAS_URL;
+
+  // Reset al cerrar
   useEffect(() => {
     if (!open) {
-      // Resetear al cerrar
       setStep(STEP.SELECT);
       setSelectedMethod(null);
       setEmail('');
@@ -64,7 +78,6 @@ function PaymentModal({
     }
   }, [open]);
 
-  // Escape para cerrar, bloqueo de scroll
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -79,7 +92,6 @@ function PaymentModal({
     };
   }, [open, onClose, step]);
 
-  // Focus inicial en el botón close cuando se abre
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => closeRef.current?.focus(), 0);
@@ -88,6 +100,7 @@ function PaymentModal({
   }, [open]);
 
   if (!open) return null;
+  if (!product) return null;
 
   const handlePay = async () => {
     if (!emailValid || !selectedMethod) {
@@ -97,16 +110,14 @@ function PaymentModal({
 
     const trimmedEmail = email.trim();
 
-    // Ramificación según método
     if (selectedMethod.handler === 'automatic') {
-      // Flujo MP: mismo que hoy
       setStep(STEP.REDIRECTING_MP);
       setError('');
       try {
         const res = await fetch('/.netlify/functions/create-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cursoSlug, buyerEmail: trimmedEmail }),
+          body: JSON.stringify({ cursoSlug: product.slug, buyerEmail: trimmedEmail }),
         });
         const body = await res.json();
         if (!res.ok || !body.initPoint) {
@@ -120,15 +131,13 @@ function PaymentModal({
       return;
     }
 
-    // Flujos manuales (transferencia, gocuotas): llaman al endpoint
-    // create-manual-payment y cambian el modal a pantalla de confirmación.
     setError('');
     try {
       const res = await fetch('/.netlify/functions/create-manual-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cursoSlug,
+          cursoSlug: product.slug,
           buyerEmail: trimmedEmail,
           paymentMethod: selectedMethod.id,
         }),
@@ -137,7 +146,6 @@ function PaymentModal({
       if (!res.ok) {
         throw new Error(body.error || 'No pudimos registrar el pago');
       }
-      // Cambiar a la pantalla de confirmación correspondiente
       if (selectedMethod.id === 'transferencia') {
         setStep(STEP.CONFIRM_TRANSFERENCIA);
       } else if (selectedMethod.id === 'gocuotas') {
@@ -171,14 +179,15 @@ function PaymentModal({
       onClick={canClose ? onClose : undefined}
     >
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <header className={styles.header}>
           <div className={styles.headerText}>
             {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
             <h2 id="payment-modal-title" className={styles.title}>
-              {cursoTitle}
+              {product.title}
             </h2>
-            <p className={styles.price}>{priceLabel} ARS</p>
+            <p className={styles.price}>
+              {formatARS(product.price)} <span className={styles.priceCurrency}>{product.currency || 'ARS'}</span>
+            </p>
           </div>
           {canClose && (
             <button
@@ -231,6 +240,9 @@ function PaymentModal({
               <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
                 {PAYMENT_METHODS.map((method) => {
                   const selected = selectedMethod?.id === method.id;
+                  const methodPrice = resolvePrice(product, method.id);
+                  const isDiscounted = methodPrice < product.price;
+
                   return (
                     <button
                       key={method.id}
@@ -244,7 +256,15 @@ function PaymentModal({
                     >
                       <span className={styles.methodMark} aria-hidden="true" />
                       <span className={styles.methodText}>
-                        <span className={styles.methodLabel}>{method.label}</span>
+                        <span className={styles.methodTopRow}>
+                          <span className={styles.methodLabel}>{method.label}</span>
+                          <span className={styles.methodPriceGroup}>
+                            <span className={styles.methodPrice}>{formatARS(methodPrice)}</span>
+                            {isDiscounted && (
+                              <span className={styles.methodDiscountBadge}>OFERTA</span>
+                            )}
+                          </span>
+                        </span>
                         <span className={styles.methodDescription}>{method.description}</span>
                       </span>
                     </button>
@@ -261,9 +281,9 @@ function PaymentModal({
                 disabled={!emailValid || !selectedMethod}
               >
                 {selectedMethod?.handler === 'automatic'
-                  ? 'Pagar con Mercado Pago'
+                  ? `Pagar ${formatARS(effectivePrice)} con Mercado Pago`
                   : selectedMethod
-                  ? 'Continuar'
+                  ? `Continuar con ${formatARS(effectivePrice)}`
                   : 'Elegí un método'}
               </Button>
             </div>
@@ -287,7 +307,7 @@ function PaymentModal({
             <div className={styles.body}>
               <h3 className={styles.confirmTitle}>Datos para transferir</h3>
               <p className={styles.confirmIntro}>
-                Realizá la transferencia por <strong>{priceLabel} ARS</strong> a los siguientes datos:
+                Realizá la transferencia por <strong>{formatARS(effectivePrice)}</strong> a los siguientes datos:
               </p>
 
               <dl className={styles.bankDetails}>
@@ -359,12 +379,12 @@ function PaymentModal({
               <h3 className={styles.confirmTitle}>Completá el pago en Go Cuotas</h3>
               <p className={styles.confirmIntro}>
                 Vas a ser redirigido al sitio de Go Cuotas para completar el pago por{' '}
-                <strong>{priceLabel} ARS</strong>.
+                <strong>{formatARS(effectivePrice)}</strong>.
               </p>
-      
+
               <div className={styles.gocuotasCta}>
                 <a
-                  href={GOCUOTAS_URL}
+                  href={gocuotasLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={styles.gocuotasLink}

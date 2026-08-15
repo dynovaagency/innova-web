@@ -171,10 +171,8 @@ function CapsulaDetallePublica() {
       <PaymentModal
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
-        cursoSlug={product.slug}
-        cursoTitle={product.title}
-        subtitle={product.subtitle}
-        priceLabel={formatPriceARS(product.price)}
+        product={product}
+        subtitle={product.modalidad === 'curso' ? 'Curso' : product.subtitle || 'Cápsula Formativa'}
       />
     </div>
   );

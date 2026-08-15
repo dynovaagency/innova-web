@@ -478,3 +478,43 @@
     padding: var(--space-sm) var(--space-md) var(--space-md);
   }
 }
+
+.methodTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.methodPriceGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.methodPrice {
+  font-size: var(--font-size-base);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.methodDiscountBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--color-accent);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+}
+
+.priceCurrency {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  margin-left: var(--space-2xs);
+}
