@@ -5,32 +5,18 @@
  *
  * Body:
  *   {
- *     slug: string (requerido),
- *     type: 'capsula_genially' (v2.0),
- *     title: string,
- *     subtitle: string opcional,
- *     description: string,
- *     price: number,
- *     currency: 'ARS' | 'USD',
- *     active: boolean,
- *     category: string,
- *     duration: string,
- *     featured: boolean,
- *     imageUrl: string opcional,
- *     contentType: 'embed' | 'external_link',
- *     contentUrl: string,
- *     modalidad: 'capsula' | 'curso'
+ *     slug, type, title, subtitle, description, price, currency, active,
+ *     category, duration, featured, imageUrl, contentType, contentUrl,
+ *     modalidad,
+ *     priceTransferencia, priceGocuotas, gocuotasUrl  ← Sprint 2.7
  *   }
  *
- * Comportamiento:
- *   - Si el slug ya existe: actualiza (preserva createdAt original).
- *   - Si no existe: crea con createdAt = ahora.
- *   - En ambos casos updatedAt = ahora.
- *   - Valida el schema antes de escribir.
+ * Los 3 campos nuevos son opcionales:
+ *   - priceTransferencia: precio final para transferencia bancaria.
+ *   - priceGocuotas: precio final para Go Cuotas.
+ *   - gocuotasUrl: link específico de Go Cuotas para este producto.
  *
- * Response:
- *   200 { product, created: boolean }
- *   400 { error, validation: [...] }
+ * Si vienen null o vacíos, se guardan como null (no se aplica precio específico).
  */
 
 import { ok, error, preflight } from './_lib/config.js';
@@ -47,6 +33,20 @@ const normalizeSlug = (raw) => {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+};
+
+// Convierte un valor de precio opcional del payload a número o null.
+// Aceptamos: número, string numérico, string vacío, null, undefined.
+const parseOptionalPrice = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  if (isNaN(n) || n <= 0) return null;
+  return n;
+};
+
+const parseOptionalUrl = (value) => {
+  if (typeof value !== 'string') return '';
+  return value.trim();
 };
 
 export const handler = async (event) => {
@@ -84,6 +84,10 @@ export const handler = async (event) => {
     contentType: payload.contentType || 'embed',
     contentUrl: (payload.contentUrl || payload.geniallyUrl || '').trim(),
     modalidad: payload.modalidad || 'capsula',
+    // Sprint 2.7: precios por método (opcionales)
+    priceTransferencia: parseOptionalPrice(payload.priceTransferencia),
+    priceGocuotas: parseOptionalPrice(payload.priceGocuotas),
+    gocuotasUrl: parseOptionalUrl(payload.gocuotasUrl),
   };
 
   const validation = validateProduct(productData);

@@ -17,19 +17,16 @@
  *   200 {
  *     externalReference: string,
  *     paymentMethod: string,
- *     message: string  // texto explicativo para mostrar al usuario
+ *     amount: number,             ← el precio efectivo cobrado
+ *     message: string
  *   }
  *
- * Flujo desde el usuario:
- *   1. Elige "Transferencia bancaria" o "Go Cuotas" en el PaymentModal.
- *   2. El frontend llama a este endpoint con el método elegido.
- *   3. El backend crea el pago pending y devuelve el externalReference.
- *   4. El frontend muestra los datos bancarios / link de Go Cuotas + un mensaje
- *      "cuando confirmemos el pago te enviamos el link por email".
- *   5. Innova ve el pago pendiente en el panel admin, verifica que el pago
- *      llegó a su cuenta (por home banking, o email de Go Cuotas), y marca
- *      como aprobado.
- *   6. Al marcar aprobado, se dispara el email de acceso al comprador.
+ * Sprint 2.7: usa el precio específico del método si el producto lo tiene.
+ *   - Si el producto tiene priceTransferencia y el método es 'transferencia',
+ *     se cobra ese monto.
+ *   - Si el producto tiene priceGocuotas y el método es 'gocuotas',
+ *     se cobra ese monto.
+ *   - Si no hay precio específico, cae al price base.
  */
 
 import { ok, error, preflight } from './_lib/config.js';
@@ -41,6 +38,19 @@ const VALID_METHODS = ['transferencia', 'gocuotas'];
 
 const generateExternalReference = () => {
   return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
+// Resuelve el precio final a cobrar según el método de pago.
+// Si el producto tiene precio específico para ese método, lo usa.
+// Si no, cae al precio base.
+const resolvePrice = (product, paymentMethod) => {
+  if (paymentMethod === 'transferencia' && product.priceTransferencia) {
+    return product.priceTransferencia;
+  }
+  if (paymentMethod === 'gocuotas' && product.priceGocuotas) {
+    return product.priceGocuotas;
+  }
+  return product.price;
 };
 
 export const handler = async (event) => {
@@ -56,7 +66,6 @@ export const handler = async (event) => {
 
   const { cursoSlug, buyerEmail, paymentMethod } = payload;
 
-  // Validaciones
   if (!cursoSlug) {
     return error(400, 'cursoSlug es requerido');
   }
@@ -73,11 +82,13 @@ export const handler = async (event) => {
     return error(400, `paymentMethod debe ser uno de: ${VALID_METHODS.join(', ')}`);
   }
 
-  // Verificar que el producto exista y esté activo
   const product = await productsRepo.findBySlug(cursoSlug, { activeOnly: true });
   if (!product) {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
   }
+
+  // Resolver el precio efectivo según el método
+  const effectivePrice = resolvePrice(product, paymentMethod);
 
   const externalReference = generateExternalReference();
 
@@ -85,16 +96,19 @@ export const handler = async (event) => {
     await paymentsRepo.insert({
       externalReference,
       status: 'pending',
-      amount: product.price,
+      amount: effectivePrice,
       currency: product.currency || 'ARS',
       buyerEmail: normalizedEmail,
       cursoSlug,
       productTitle: product.title,
-      provider: paymentMethod, // 'transferencia' | 'gocuotas'
+      provider: paymentMethod,
       providerReference: null,
       providerMetadata: {
         method: paymentMethod,
         awaitingManualApproval: true,
+        basePrice: product.price,
+        appliedPrice: effectivePrice,
+        hasMethodDiscount: effectivePrice !== product.price,
       },
       mpPreferenceId: null,
       mpPaymentId: null,
@@ -103,7 +117,7 @@ export const handler = async (event) => {
 
     console.log(
       `[create-manual-payment] pago pendiente creado: ${externalReference}`,
-      { paymentMethod, cursoSlug, buyerEmail: normalizedEmail }
+      { paymentMethod, cursoSlug, buyerEmail: normalizedEmail, amount: effectivePrice }
     );
 
     const messages = {
@@ -114,6 +128,7 @@ export const handler = async (event) => {
     return ok({
       externalReference,
       paymentMethod,
+      amount: effectivePrice,
       message: messages[paymentMethod],
     });
   } catch (err) {
