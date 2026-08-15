@@ -33,7 +33,13 @@ function CapsulaCardFeatured({ product }) {
 
       <div className={styles.body}>
         {product.category && (
-          <span className={styles.category}>{product.category.toUpperCase()}</span>
+          <span className={styles.category}>
+          <span className={styles.modalidadTag}>
+            {product.modalidad === 'curso' ? 'CURSO' : 'CÁPSULA'}
+          </span>
+          {product.category && <span aria-hidden="true"> · </span>}
+          {product.category && product.category.toUpperCase()}
+        </span>
         )}
         <h2 className={styles.title}>{product.title}</h2>
         <p className={styles.description}>{product.description}</p>

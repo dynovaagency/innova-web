@@ -70,12 +70,18 @@ function CapsulaDetallePublica() {
             <span>{product.title}</span>
           </nav>
 
-          {product.category && (
-            <div className={styles.categoryRow}>
-              <CategoryIcon category={product.category} size="sm" />
-              <span className={styles.categoryLabel}>{product.category.toUpperCase()}</span>
-            </div>
-          )}
+          <div className={styles.categoryRow}>
+            {product.category && <CategoryIcon category={product.category} size="sm" />}
+            <span className={styles.modalidadLabel}>
+              {product.modalidad === 'curso' ? 'CURSO' : 'CÁPSULA'}
+            </span>
+            {product.category && (
+              <>
+                <span aria-hidden="true" className={styles.categorySeparator}>·</span>
+                <span className={styles.categoryLabel}>{product.category.toUpperCase()}</span>
+              </>
+            )}
+          </div>
 
           <h1 className={styles.headerTitle}>{product.title}</h1>
         </div>

@@ -299,3 +299,18 @@
     padding: var(--space-lg);
   }
 }
+
+.modalidadLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-wide);
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.categorySeparator {
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 var(--space-xs);
+}

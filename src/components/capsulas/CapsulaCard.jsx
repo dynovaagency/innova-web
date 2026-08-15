@@ -36,7 +36,13 @@ function CapsulaCard({ product }) {
       </Link>
 
       <div className={styles.body}>
-        <span className={styles.categoryTag}>{product.category?.toUpperCase()}</span>
+        <span className={styles.categoryTag}>
+          <span className={styles.modalidadTag}>
+            {product.modalidad === 'curso' ? 'CURSO' : 'CÁPSULA'}
+          </span>
+          {product.category && <span aria-hidden="true"> · </span>}
+          {product.category?.toUpperCase()}
+        </span>
         <h3 className={styles.title}>
           <Link to={detailUrl} className={styles.titleLink}>
             {product.title}
