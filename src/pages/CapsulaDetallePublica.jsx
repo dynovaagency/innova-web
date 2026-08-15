@@ -165,13 +165,10 @@ function CapsulaDetallePublica() {
       <PaymentModal
         open={paymentOpen}
         onClose={() => setPaymentOpen(false)}
-        product={{
-          slug: product.slug,
-          title: product.title,
-          price: product.price,
-          currency: product.currency || 'ARS',
-          priceFormatted: formatPriceARS(product.price),
-        }}
+        cursoSlug={product.slug}
+        cursoTitle={product.title}
+        subtitle={product.subtitle}
+        priceLabel={formatPriceARS(product.price)}
       />
     </div>
   );
