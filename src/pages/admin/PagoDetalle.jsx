@@ -196,11 +196,11 @@ function PagoDetalle() {
   if (!payment) return null;
 
   const canResend = payment.status === 'approved' && payment.buyerEmail;
-  const isManualProvider = ['transferencia', 'gocuotas'].includes(payment.provider);
+  // Sprint 2.8: cualquier pago pending con email puede aprobarse manualmente.
+  // Para MP es un fallback si el webhook no llegó todavía.
   const canApprove =
     payment.status === 'pending' &&
-    isManualProvider &&
-    payment.buyerEmail;
+    !!payment.buyerEmail;
 
   return (
     <>
@@ -455,7 +455,11 @@ function PagoDetalle() {
       <ConfirmDialog
         open={confirmApprove.open}
         title="¿Marcar este pago como aprobado?"
-        message={`Vas a confirmar que recibiste el pago por transferencia o Go Cuotas del comprador ${payment.buyerEmail}. Al confirmar, se le va a enviar automáticamente el link de acceso al curso.`}
+        message={
+          payment.provider === 'mercadopago'
+            ? `Vas a marcar como aprobado este pago de MercadoPago (${payment.buyerEmail}) sin esperar la confirmación automática del webhook. Usá esta opción solo si ya viste el pago en tu cuenta MP. Al confirmar, se envía automáticamente el link de acceso al comprador.`
+            : `Vas a confirmar que recibiste el pago por ${payment.provider === 'transferencia' ? 'transferencia bancaria' : 'Go Cuotas'} del comprador ${payment.buyerEmail}. Al confirmar, se le va a enviar automáticamente el link de acceso al curso.`
+        }
         confirmLabel="Sí, aprobar y enviar acceso"
         loading={confirmApprove.loading}
         onConfirm={handleApproveConfirm}

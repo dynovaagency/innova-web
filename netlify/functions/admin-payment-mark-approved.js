@@ -63,13 +63,16 @@ export const handler = async (event) => {
       });
     }
 
-    // Solo aceptamos aprobación manual para pagos por transferencia/gocuotas.
-    // Los pagos de MP se aprueban automáticamente vía webhook.
-    if (!MANUAL_METHODS.includes(payment.provider)) {
-      return error(400, `Este endpoint solo aplica a pagos por transferencia o Go Cuotas. Provider del pago: ${payment.provider}`, {
-        currentProvider: payment.provider,
-      });
-    }
+    // Sprint 2.8: permitimos aprobar manualmente pagos de cualquier provider.
+    // Casos de uso:
+    //   - Transferencia y Go Cuotas: aprobación manual es el flujo estándar.
+    //   - MercadoPago: aprobación manual como fallback si el webhook falla,
+    //     o para adelantar la entrega del acceso si Innova ya vio el pago
+    //     en su cuenta MP antes de que llegue el webhook.
+    //
+    // Riesgo cubierto: si después de aprobar manualmente llega el webhook,
+    // mp-webhook.js tiene protección de idempotencia (no reenvía email si
+    // emailSentAt ya está seteado y status ya es approved).
 
     if (!payment.buyerEmail) {
       return error(400, 'El pago no tiene email asociado, no se puede enviar el acceso');
