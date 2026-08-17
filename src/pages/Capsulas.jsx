@@ -25,7 +25,14 @@ import styles from './Capsulas.module.css';
 const PAGE_SIZE = 12;
 
 function Capsulas() {
-  const { products, loading } = useProductsCatalog();
+  const { products: allProducts, loading } = useProductsCatalog();
+
+  // Filtramos por modalidad === 'capsula'. Los cursos se muestran en
+  // /servicios/cursos, no acá.
+  const products = useMemo(() => {
+    if (!allProducts) return [];
+    return allProducts.filter((p) => p.modalidad === 'capsula');
+  }, [allProducts]);
 
   const [searchText, setSearchText] = useState('');
   const [filters, setFilters] = useState({ sort: 'newest', category: '' });
