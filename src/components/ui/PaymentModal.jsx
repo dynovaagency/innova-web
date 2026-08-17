@@ -78,6 +78,14 @@ function PaymentModal({ open, onClose, product, subtitle }) {
     }
   }, [open]);
 
+  // Si es cápsula, pre-seleccionar MP automáticamente (único método permitido).
+  useEffect(() => {
+    if (open && product?.modalidad === 'capsula' && !selectedMethod) {
+      const mp = PAYMENT_METHODS.find((m) => m.id === 'mercadopago');
+      if (mp) setSelectedMethod(mp);
+    }
+  }, [open, product, selectedMethod]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -237,8 +245,18 @@ function PaymentModal({ open, onClose, product, subtitle }) {
               )}
 
               <p className={styles.methodsLabel}>Elegí cómo querés pagar</p>
+              {/* Filtro por modalidad: las cápsulas solo aceptan MercadoPago.
+                  Los cursos (u otros) aceptan todos los métodos. */}
               <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
-                {PAYMENT_METHODS.map((method) => {
+                {PAYMENT_METHODS
+                  .filter((method) => {
+                    // Cápsulas solo pueden pagarse con MercadoPago.
+                    if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((method) => {
                   const selected = selectedMethod?.id === method.id;
                   const methodPrice = resolvePrice(product, method.id);
                   const isDiscounted = methodPrice < product.price;

@@ -9,9 +9,9 @@ const navItems = [
     label: 'Servicios',
     hasDropdown: true,
     dropdown: [
-      { to: '/servicios/capsulas', label: 'Cápsulas Formativas' },
-      { to: '/servicios/cursos', label: 'Cursos y Formaciones' },
+      { to: '/servicios/capsulas', label: 'Cápsulas' },
       { to: '/servicios', label: 'Supervisiones' },
+      { to: '/servicios/cursos', label: 'Cursos y Formaciones' },
     ],
   },
   { to: '/biblioteca', label: 'Biblioteca' },

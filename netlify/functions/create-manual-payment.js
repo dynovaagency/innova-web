@@ -87,6 +87,17 @@ export const handler = async (event) => {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
   }
 
+  // Sprint 2.9: las cápsulas solo pueden pagarse con MercadoPago (flujo
+  // automático). Los métodos manuales (transferencia, Go Cuotas) están
+  // reservados para cursos, que tienen ticket más alto y ameritan cuotas
+  // o descuento por transferencia.
+  if (product.modalidad === 'capsula') {
+    return error(400, 'Este producto solo puede pagarse con MercadoPago', {
+      modalidad: product.modalidad,
+      paymentMethod,
+    });
+  }
+
   // Resolver el precio efectivo según el método
   const effectivePrice = resolvePrice(product, paymentMethod);
 
