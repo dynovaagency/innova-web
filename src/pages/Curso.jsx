@@ -1,19 +1,31 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, Link, Navigate } from 'react-router-dom';
-import { getCursoBySlug } from '../data/cursos.js';
+import { useProduct } from '../hooks/useProduct.js';
 import styles from './Curso.module.css';
 
 /**
- * Página del curso — muestra la cápsula embebida en un iframe de Genially.
+ * Página del curso — muestra el contenido embebido (iframe) o un botón
+ * a un link externo, según el contentType del producto.
  *
  * Control de acceso:
  *   1. La ruta llega con ?ref=inv_xxx (query param que setea Mercado Pago
  *      cuando redirige después de un pago aprobado).
- *   2. Antes de renderizar el iframe, se llama a /verify-payment con ese ref
- *      y el slug de la URL. Solo si el server responde valid: true se muestra
- *      la cápsula.
+ *   2. Antes de renderizar el contenido, se llama a /verify-payment con ese
+ *      ref y el slug de la URL. Solo si el server responde valid: true se
+ *      muestra el contenido.
  *   3. Si no hay ref o el ref no es válido, se muestra una pantalla de bloqueo
  *      con instrucciones (pero sin exponer detalles de por qué).
+ *
+ * Fuente del producto:
+ *   Usa el hook useProduct que consulta el catálogo del backend (products-list)
+ *   con fallback al catálogo estático. Esto permite que cualquier cápsula creada
+ *   desde el panel admin funcione automáticamente, sin necesidad de que exista
+ *   también en src/data/cursos.js.
+ *
+ * Content types (Entrega 3.5):
+ *   - embed: se muestra en iframe (Genially, YouTube, Vimeo, etc.).
+ *   - external_link: se muestra como botón grande que abre en pestaña nueva
+ *     (Meet, Teams, Zoom, cualquier contenido que no permita embed).
  *
  * Polling para resolver timing de MP:
  *   MP redirige al usuario al back_url ANTES de que el webhook actualice el
@@ -38,13 +50,15 @@ function Curso() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
-  const curso = getCursoBySlug(slug);
+
+  const { product, loading: productLoading, error: productError } = useProduct(slug);
 
   const [state, setState] = useState(STATE.LOADING);
   const cancelledRef = useRef(false);
 
   useEffect(() => {
-    if (!curso) return;
+    if (productLoading) return;
+    if (!product) return;
 
     if (!ref) {
       setState(STATE.DENIED);
@@ -67,8 +81,6 @@ function Curso() {
           return;
         }
 
-        // Si viene pending y todavía hay intentos, seguimos polling.
-        // Esto cubre el gap entre "MP redirige" y "webhook actualiza Blobs".
         if (data.reason === 'pending' && attempts < POLL_MAX_ATTEMPTS) {
           attempts += 1;
           setTimeout(verify, POLL_INTERVAL_MS);
@@ -90,11 +102,27 @@ function Curso() {
     verify();
 
     return () => { cancelledRef.current = true; };
-  }, [ref, slug, curso]);
+  }, [ref, slug, product, productLoading]);
 
-  if (!curso) {
+  if (productLoading) {
+    return (
+      <div className={styles.page}>
+        <section className={styles.body}>
+          <div className={styles.stateBox}>
+            <div className={styles.stateSpinner} aria-hidden="true" />
+            <p>Cargando curso...</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!product) {
     return <Navigate to="/" replace />;
   }
+
+  const contentUrl = product.contentUrl || product.geniallyUrl;
+  const contentType = product.contentType || 'embed';
 
   return (
     <div className={styles.page}>
@@ -106,12 +134,15 @@ function Curso() {
             <span aria-hidden="true">›</span>
             <span>ACCESO AL CURSO</span>
           </nav>
-          <span className={styles.headerTag}>{curso.subtitle.toUpperCase()}</span>
-          <h1 className={styles.headerTitle}>{curso.title}</h1>
+          {product.subtitle && (
+            <span className={styles.headerTag}>{product.subtitle.toUpperCase()}</span>
+          )}
+          <h1 className={styles.headerTitle}>{product.title}</h1>
           {state === STATE.GRANTED && (
             <p className={styles.headerDescription}>
-              Bienvenido/a. Ya podés comenzar la cápsula. Podés navegar por el contenido a tu ritmo,
-              volver cuando quieras y usar el modo pantalla completa para una mejor experiencia.
+              {contentType === 'external_link'
+                ? 'Tu acceso está confirmado. Usá el botón de abajo para abrir el contenido en una pestaña nueva.'
+                : 'Bienvenido/a. Ya podés comenzar la cápsula. Podés navegar por el contenido a tu ritmo, volver cuando quieras y usar el modo pantalla completa para una mejor experiencia.'}
             </p>
           )}
         </div>
@@ -125,12 +156,12 @@ function Curso() {
           </div>
         )}
 
-        {state === STATE.GRANTED && (
+        {state === STATE.GRANTED && contentType === 'embed' && (
           <>
             <div className={styles.iframeWrapper}>
               <iframe
-                src={curso.geniallyUrl}
-                title={curso.title}
+                src={contentUrl}
+                title={product.title}
                 className={styles.iframe}
                 allow="fullscreen; accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -146,6 +177,35 @@ function Curso() {
               </p>
             </div>
           </>
+        )}
+
+        {state === STATE.GRANTED && contentType === 'external_link' && (
+          <div className={styles.externalLinkBox}>
+            <h2 className={styles.externalLinkTitle}>Tu acceso está confirmado</h2>
+            <p className={styles.externalLinkText}>
+              Este contenido se abre en una plataforma externa (por ejemplo Google Meet, Microsoft
+              Teams, o Zoom). Hacé click en el botón para acceder en una pestaña nueva.
+            </p>
+            <a
+              href={contentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.externalLinkBtn}
+            >
+              Ir al contenido
+            </a>
+            <p className={styles.externalLinkHint}>
+              Guardá esta página o el email que te enviamos para volver a acceder cuando quieras.
+            </p>
+            <div className={styles.support}>
+              <p>
+                ¿Tenés problemas para acceder? Escribinos:{' '}
+                <a href="mailto:innovatrabajosocial@trabajosocial.ar" className={styles.supportLink}>
+                  innovatrabajosocial@trabajosocial.ar
+                </a>
+              </p>
+            </div>
+          </div>
         )}
 
         {state === STATE.PENDING && (
@@ -171,7 +231,7 @@ function Curso() {
               </a>{' '}
               y te ayudamos.
             </p>
-            <Link to="/servicios/capsula-formativa" className={styles.stateBackBtn}>
+            <Link to={`/servicios/${slug}`} className={styles.stateBackBtn}>
               Ir a la cápsula
             </Link>
           </div>

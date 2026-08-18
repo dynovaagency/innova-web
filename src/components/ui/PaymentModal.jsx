@@ -1,226 +1,451 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from './Button.jsx';
+import { BANK_DETAILS, GOCUOTAS_URL, PAYMENT_METHODS } from '../../lib/paymentConfig.js';
 import styles from './PaymentModal.module.css';
 
-/**
- * Modal "Confirmá tu inscripción".
- *
- * Al confirmar:
- *   1. POST a /.netlify/functions/create-preference con el slug del curso.
- *   2. Recibe { initPoint, externalReference } y redirige al usuario a MP
- *      (o a /mock-checkout en modo mock).
- *   3. MP procesa el pago y redirige según estado.
- *
- * Validación de email: obligatorio, con validación de formato. Sin email
- * no se puede iniciar el pago porque el email es el único canal de acceso
- * al contenido post-pago (no hay auth de usuario). Esto evita el escenario
- * "pagué y no me llegó nada" que ya se dio en producción.
- *
- * Props:
- *   - open: boolean
- *   - onClose: () => void
- *   - product: { slug, title, price, currency, priceFormatted }
- */
-
-// Regex básico de email. Cubre 99% de casos válidos sin ser paranoico.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function PaymentModal({ open, onClose, product }) {
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+/**
+ * Modal de compra con selección de método de pago.
+ *
+ * Sprint 2.7: soporta precios distintos por método.
+ *   - Cada card de método muestra su precio efectivo.
+ *   - Si el producto tiene priceTransferencia, se usa ese en vez del base.
+ *   - Si el producto tiene priceGocuotas, se usa ese en vez del base.
+ *   - Si el producto tiene gocuotasUrl, se usa ese link en vez del genérico.
+ *
+ * Props:
+ *   - open, onClose
+ *   - product: producto completo del catálogo (para leer precios y URLs)
+ *   - subtitle (opcional): "CURSO" o "CÁPSULA" mostrado arriba del título
+ */
+
+const STEP = {
+  SELECT: 'select',
+  REDIRECTING_MP: 'redirecting_mp',
+  CONFIRM_TRANSFERENCIA: 'confirm_transferencia',
+  CONFIRM_GOCUOTAS: 'confirm_gocuotas',
+  ERROR: 'error',
+};
+
+// Formatea número a "$125.000"
+const formatARS = (amount) => {
+  const nf = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+  return `$${nf.format(amount || 0)}`;
+};
+
+// Resuelve el precio efectivo según el método
+const resolvePrice = (product, methodId) => {
+  if (!product) return 0;
+  if (methodId === 'transferencia' && product.priceTransferencia) return product.priceTransferencia;
+  if (methodId === 'gocuotas' && product.priceGocuotas) return product.priceGocuotas;
+  return product.price;
+};
+
+function PaymentModal({ open, onClose, product, subtitle }) {
+  const [step, setStep] = useState(STEP.SELECT);
+  const [selectedMethod, setSelectedMethod] = useState(null);
   const [email, setEmail] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
-  const dialogRef = useRef(null);
+  const [error, setError] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState('');
+  const closeRef = useRef(null);
 
-  // Validación de email en tiempo real. Solo mostramos el error si el
-  // usuario ya tocó el campo (para no mostrar error apenas abre el modal).
-  const emailError = useMemo(() => {
-    if (!emailTouched) return '';
-    if (!email.trim()) return 'Necesitamos tu email para enviarte el acceso al curso.';
-    if (!EMAIL_REGEX.test(email.trim())) return 'Ingresá un email válido.';
-    return '';
-  }, [email, emailTouched]);
+  const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
+  const emailShowError = emailTouched && email.length > 0 && !emailValid;
 
-  const isEmailValid = email.trim() && EMAIL_REGEX.test(email.trim());
-  const canSubmit = !loading && isEmailValid;
+  // Calcular el precio efectivo del método seleccionado
+  const effectivePrice = useMemo(() => {
+    if (!selectedMethod || !product) return product?.price || 0;
+    return resolvePrice(product, selectedMethod.id);
+  }, [selectedMethod, product]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => e.key === 'Escape' && !loading && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, loading]);
+  // Link de Go Cuotas: usar el del producto si existe, si no el placeholder global
+  const gocuotasLink = product?.gocuotasUrl || GOCUOTAS_URL;
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
-
+  // Reset al cerrar
   useEffect(() => {
     if (!open) {
-      setErrorMsg('');
-      setLoading(false);
+      setStep(STEP.SELECT);
+      setSelectedMethod(null);
+      setEmail('');
       setEmailTouched(false);
+      setError('');
+      setCopyFeedback('');
+    }
+  }, [open]);
+
+  // Si es cápsula, pre-seleccionar MP automáticamente (único método permitido).
+  useEffect(() => {
+    if (open && product?.modalidad === 'capsula' && !selectedMethod) {
+      const mp = PAYMENT_METHODS.find((m) => m.id === 'mercadopago');
+      if (mp) setSelectedMethod(mp);
+    }
+  }, [open, product, selectedMethod]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && step !== STEP.REDIRECTING_MP) onClose?.();
+    };
+    window.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose, step]);
+
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => closeRef.current?.focus(), 0);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
   if (!open) return null;
+  if (!product) return null;
 
   const handlePay = async () => {
-    // Doble check: aunque el botón esté disabled, protegemos por si alguien
-    // manipula el DOM.
-    if (!isEmailValid) {
+    if (!emailValid || !selectedMethod) {
       setEmailTouched(true);
       return;
     }
 
-    setLoading(true);
-    setErrorMsg('');
+    const trimmedEmail = email.trim();
+
+    if (selectedMethod.handler === 'automatic') {
+      setStep(STEP.REDIRECTING_MP);
+      setError('');
+      try {
+        const res = await fetch('/.netlify/functions/create-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cursoSlug: product.slug, buyerEmail: trimmedEmail }),
+        });
+        const body = await res.json();
+        if (!res.ok || !body.initPoint) {
+          throw new Error(body.error || 'No pudimos iniciar el pago');
+        }
+        window.location.href = body.initPoint;
+      } catch (err) {
+        setError(err.message || 'Hubo un problema al iniciar el pago');
+        setStep(STEP.ERROR);
+      }
+      return;
+    }
+
+    setError('');
     try {
-      const res = await fetch('/.netlify/functions/create-preference', {
+      const res = await fetch('/.netlify/functions/create-manual-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cursoSlug: product?.slug || 'vulnerabilidad-social',
-          buyerEmail: email.trim(),
+          cursoSlug: product.slug,
+          buyerEmail: trimmedEmail,
+          paymentMethod: selectedMethod.id,
         }),
       });
-
+      const body = await res.json();
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || 'No se pudo iniciar el pago');
+        throw new Error(body.error || 'No pudimos registrar el pago');
       }
-
-      const data = await res.json();
-      if (!data.initPoint) {
-        throw new Error('Respuesta inválida del servidor');
+      if (selectedMethod.id === 'transferencia') {
+        setStep(STEP.CONFIRM_TRANSFERENCIA);
+      } else if (selectedMethod.id === 'gocuotas') {
+        setStep(STEP.CONFIRM_GOCUOTAS);
       }
-
-      window.location.href = data.initPoint;
     } catch (err) {
-      console.error('Error al crear preferencia:', err);
-      setErrorMsg(err.message || 'No se pudo iniciar el pago. Intentá de nuevo.');
-      setLoading(false);
+      setError(err.message || 'Hubo un problema al registrar el pago');
+      setStep(STEP.ERROR);
     }
   };
 
-  const displayPrice = product?.priceFormatted
-    ? product.priceFormatted
-    : (product?.price
-        ? `$ ${new Intl.NumberFormat('es-AR').format(product.price)}`
-        : '$ 28.000');
+  const handleCopy = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback(`${label} copiado`);
+      setTimeout(() => setCopyFeedback(''), 2000);
+    } catch {
+      setCopyFeedback('No se pudo copiar');
+      setTimeout(() => setCopyFeedback(''), 2000);
+    }
+  };
+
+  const canClose = step !== STEP.REDIRECTING_MP;
 
   return (
-    <div className={styles.backdrop} onClick={loading ? undefined : onClose} role="presentation">
-      <div
-        ref={dialogRef}
-        className={styles.dialog}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="payment-modal-title"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className={styles.backdrop}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-modal-title"
+      onClick={canClose ? onClose : undefined}
+    >
+      <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
-          <div>
-            <h2 id="payment-modal-title" className={styles.title}>Confirmá tu inscripción</h2>
-            <p className={styles.subtitle}>
-              {product?.title ? `Estás por inscribirte a ${product.title}.` : 'Estás por inscribirte a esta cápsula.'}
-              <br />
-              <strong>Total: {displayPrice}</strong>
+          <div className={styles.headerText}>
+            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+            <h2 id="payment-modal-title" className={styles.title}>
+              {product.title}
+            </h2>
+            <p className={styles.price}>
+              {formatARS(product.price)} <span className={styles.priceCurrency}>{product.currency || 'ARS'}</span>
             </p>
           </div>
-          <button
-            type="button"
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label="Cerrar"
-            disabled={loading}
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <line x1="6" y1="6" x2="18" y2="18" />
-              <line x1="6" y1="18" x2="18" y2="6" />
-            </svg>
-          </button>
+          {canClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              ref={closeRef}
+              className={styles.closeBtn}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          )}
         </header>
 
-        <div className={styles.mpSection}>
-          <div className={styles.mpIntro}>
-            <span className={styles.mpBadge}>
-              <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
-                <rect width="32" height="32" rx="6" fill="#82C6C5" />
-                <text x="16" y="20" textAnchor="middle" fontFamily="Inter" fontWeight="700" fontSize="11" fill="#153F71">MP</text>
-              </svg>
-              <span>
-                <span className={styles.mpTitle}>Mercado Pago</span>
-                <span className={styles.mpSubtitle}>Tarjeta, débito, crédito o saldo en cuenta</span>
-              </span>
-            </span>
-          </div>
+        {/* PASO 1: Selección de método + email */}
+        {step === STEP.SELECT && (
+          <>
+            <div className={styles.body}>
+              <label htmlFor="payment-email" className={styles.emailLabel}>
+                Tu email <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                id="payment-email"
+                type="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                aria-invalid={emailShowError}
+                aria-describedby={emailShowError ? 'email-hint' : 'email-help'}
+                className={
+                  emailShowError
+                    ? `${styles.emailInput} ${styles.emailInputError}`
+                    : styles.emailInput
+                }
+                placeholder="tu@email.com"
+                required
+              />
+              {emailShowError ? (
+                <p id="email-hint" className={styles.emailError}>
+                  Ingresá un email válido para recibir el acceso.
+                </p>
+              ) : (
+                <p id="email-help" className={styles.emailHelp}>
+                  Te vamos a enviar el acceso a este mail.
+                </p>
+              )}
 
-          <p className={styles.mpDescription}>
-            Al confirmar, vas a ser dirigido a Mercado Pago para completar el pago.
-            Una vez acreditado, te llevamos automáticamente a la cápsula y te
-            enviamos el acceso a tu email.
-          </p>
+              <p className={styles.methodsLabel}>Elegí cómo querés pagar</p>
+              {/* Filtro por modalidad: las cápsulas solo aceptan MercadoPago.
+                  Los cursos (u otros) aceptan todos los métodos. */}
+              <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
+                {PAYMENT_METHODS
+                  .filter((method) => {
+                    // Cápsulas solo pueden pagarse con MercadoPago.
+                    if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((method) => {
+                  const selected = selectedMethod?.id === method.id;
+                  const methodPrice = resolvePrice(product, method.id);
+                  const isDiscounted = methodPrice < product.price;
 
-          <label className={styles.emailField}>
-            <span>
-              Tu email <span className={styles.required} aria-hidden="true">*</span>
-            </span>
-            <input
-              type="email"
-              placeholder="ejemplo@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onBlur={() => setEmailTouched(true)}
-              disabled={loading}
-              required
-              aria-invalid={!!emailError}
-              aria-describedby={emailError ? 'email-error' : undefined}
-            />
-            {emailError && (
-              <span id="email-error" className={styles.fieldError} role="alert">
-                {emailError}
-              </span>
-            )}
-          </label>
-
-          {errorMsg && (
-            <div className={styles.errorBox} role="alert">
-              {errorMsg}
+                  return (
+                    <button
+                      key={method.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setSelectedMethod(method)}
+                      className={`${styles.methodCard} ${
+                        selected ? styles.methodCardSelected : ''
+                      }`}
+                    >
+                      <span className={styles.methodMark} aria-hidden="true" />
+                      <span className={styles.methodText}>
+                        <span className={styles.methodTopRow}>
+                          <span className={styles.methodLabel}>{method.label}</span>
+                          <span className={styles.methodPriceGroup}>
+                            <span className={styles.methodPrice}>{formatARS(methodPrice)}</span>
+                            {isDiscounted && (
+                              <span className={styles.methodDiscountBadge}>OFERTA</span>
+                            )}
+                          </span>
+                        </span>
+                        <span className={styles.methodDescription}>{method.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
 
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={handlePay}
-            disabled={!canSubmit}
-            className={styles.mpCta}
-          >
-            {loading ? (
-              <>
-                <span className={styles.spinner} aria-hidden="true" />
-                Iniciando pago...
-              </>
-            ) : (
-              <>
-                Pagar con Mercado Pago
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </>
-            )}
-          </Button>
+            <div className={styles.actions}>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={handlePay}
+                disabled={!emailValid || !selectedMethod}
+              >
+                {selectedMethod?.handler === 'automatic'
+                  ? `Pagar ${formatARS(effectivePrice)} con Mercado Pago`
+                  : selectedMethod
+                  ? `Continuar con ${formatARS(effectivePrice)}`
+                  : 'Elegí un método'}
+              </Button>
+            </div>
+          </>
+        )}
 
-          <p className={styles.mpHelp}>
-            Si tenés problemas con el pago, escribinos a{' '}
-            <a href="mailto:innovatrabajosocial@trabajosocial.ar">innovatrabajosocial@trabajosocial.ar</a>
-          </p>
-        </div>
+        {/* PASO 2A: Redirigiendo a MP */}
+        {step === STEP.REDIRECTING_MP && (
+          <div className={styles.body}>
+            <div className={styles.stateBox}>
+              <div className={styles.spinner} aria-hidden="true" />
+              <p className={styles.stateText}>Iniciando pago con Mercado Pago...</p>
+              <p className={styles.stateHelp}>En un momento vas a ser redirigido.</p>
+            </div>
+          </div>
+        )}
+
+        {/* PASO 2B: Confirmación de Transferencia */}
+        {step === STEP.CONFIRM_TRANSFERENCIA && (
+          <>
+            <div className={styles.body}>
+              <h3 className={styles.confirmTitle}>Datos para transferir</h3>
+              <p className={styles.confirmIntro}>
+                Realizá la transferencia por <strong>{formatARS(effectivePrice)}</strong> a los siguientes datos:
+              </p>
+
+              <dl className={styles.bankDetails}>
+                <div className={styles.bankRow}>
+                  <dt>Titular</dt>
+                  <dd>{BANK_DETAILS.titular}</dd>
+                </div>
+                <div className={styles.bankRow}>
+                  <dt>CBU</dt>
+                  <dd>
+                    <code>{BANK_DETAILS.cbu}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(BANK_DETAILS.cbu, 'CBU')}
+                      className={styles.copyBtn}
+                      aria-label="Copiar CBU"
+                    >
+                      Copiar
+                    </button>
+                  </dd>
+                </div>
+                <div className={styles.bankRow}>
+                  <dt>Alias</dt>
+                  <dd>
+                    <code>{BANK_DETAILS.alias}</code>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(BANK_DETAILS.alias, 'Alias')}
+                      className={styles.copyBtn}
+                      aria-label="Copiar alias"
+                    >
+                      Copiar
+                    </button>
+                  </dd>
+                </div>
+                <div className={styles.bankRow}>
+                  <dt>Cuenta</dt>
+                  <dd>{BANK_DETAILS.tipoCuenta} · Nº {BANK_DETAILS.cuenta} · Sucursal {BANK_DETAILS.sucursal}</dd>
+                </div>
+              </dl>
+
+              {copyFeedback && (
+                <p className={styles.copyFeedback} role="status">{copyFeedback}</p>
+              )}
+
+              <div className={styles.confirmMessage}>
+                <p>
+                  Cuando confirmemos la transferencia, te enviamos el link de acceso al mail{' '}
+                  <strong>{email}</strong>.
+                </p>
+                <p className={styles.confirmSmall}>
+                  Este proceso puede tardar 24-48 hs hábiles.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <Button variant="primary" size="lg" onClick={onClose}>
+                Entendido, cerrar
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* PASO 2C: Confirmación de Go Cuotas */}
+        {step === STEP.CONFIRM_GOCUOTAS && (
+          <>
+            <div className={styles.body}>
+              <h3 className={styles.confirmTitle}>Completá el pago en Go Cuotas</h3>
+              <p className={styles.confirmIntro}>
+                Vas a ser redirigido al sitio de Go Cuotas para completar el pago por{' '}
+                <strong>{formatARS(effectivePrice)}</strong>.
+              </p>
+
+              <div className={styles.gocuotasCta}>
+                <a
+                  href={gocuotasLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.gocuotasLink}
+                >
+                  Ir a Go Cuotas →
+                </a>
+              </div>
+
+              <div className={styles.confirmMessage}>
+                <p>
+                  Cuando confirmemos el pago desde Go Cuotas, te enviamos el link de acceso al mail{' '}
+                  <strong>{email}</strong>.
+                </p>
+                <p className={styles.confirmSmall}>
+                  Este proceso puede tardar unos minutos hasta unas horas.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <Button variant="secondary" size="lg" onClick={onClose}>
+                Entendido, cerrar
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* PASO ERROR */}
+        {step === STEP.ERROR && (
+          <>
+            <div className={styles.body}>
+              <div className={styles.stateBox}>
+                <p className={styles.stateText}>Algo salió mal</p>
+                <p className={styles.stateHelp}>{error || 'Intentá de nuevo en unos segundos.'}</p>
+              </div>
+            </div>
+            <div className={styles.actions}>
+              <Button variant="secondary" size="lg" onClick={() => setStep(STEP.SELECT)}>
+                Volver a intentar
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,60 @@
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-height: 140px;
+}
+
+.label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+}
+
+.value {
+  font-size: var(--font-size-2xl);
+  color: var(--color-text);
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  letter-spacing: var(--letter-spacing-tight);
+  word-break: break-word;
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.deltaText {
+  font-weight: var(--font-weight-semibold);
+}
+
+.deltaLabel {
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.delta_up {
+  color: #16a34a; /* green-600 */
+}
+
+.delta_down {
+  color: var(--color-accent);
+}
+
+.delta_flat {
+  color: var(--color-text-muted);
+}

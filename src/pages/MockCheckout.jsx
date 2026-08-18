@@ -26,7 +26,7 @@ function MockCheckout() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
 
-  const approve = async () => {
+    const approve = async () => {
     if (!ref) return;
     setProcessing(true);
     setError('');
@@ -39,7 +39,12 @@ function MockCheckout() {
         throw new Error(body.error || 'No se pudo aprobar el pago');
       }
       const data = await res.json();
-      navigate(`/curso/${data.cursoSlug || slug || 'vulnerabilidad-social'}?ref=${ref}`);
+      const targetSlug = data.cursoSlug || slug;
+      const targetUrl = `/curso/${targetSlug}?ref=${ref}`;
+      if (!targetSlug) {
+        throw new Error('No pudimos determinar el curso. Contactá a soporte.');
+      }
+      navigate(targetUrl);
     } catch (err) {
       console.error('[mock-approve] error:', err);
       setError(err.message || 'Error al procesar el pago simulado');

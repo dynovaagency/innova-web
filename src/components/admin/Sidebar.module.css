@@ -1,0 +1,115 @@
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: var(--color-primary);
+  color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) 0;
+  min-height: 100vh;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-lg) var(--space-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: var(--space-md);
+}
+
+.brandTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-surface);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.brandSubtitle {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-sm);
+  flex: 1;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-surface);
+}
+
+.itemActive {
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.itemActive:hover {
+  background-color: var(--color-secondary);
+  color: var(--color-primary);
+}
+
+.itemIcon {
+  flex-shrink: 0;
+}
+
+.footer {
+  padding: var(--space-md) var(--space-lg) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: var(--space-md);
+}
+
+.footerText {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+    padding: var(--space-md) 0;
+  }
+
+  .brand {
+    padding-bottom: var(--space-md);
+  }
+
+  .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0 var(--space-sm);
+  }
+
+  .item span {
+    display: none;
+  }
+
+  .item {
+    padding: var(--space-sm);
+  }
+
+  .footer {
+    display: none;
+  }
+}
