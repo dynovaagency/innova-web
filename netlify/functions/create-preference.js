@@ -18,6 +18,11 @@
  * recibe el mail de acceso y queda "huérfano" en el sistema (situación que
  * ya ocurrió en producción). El frontend también lo valida, esto es la
  * segunda línea de defensa.
+ *
+ * Sprint 2.10: MercadoPago está restringido solo a cápsulas. Los cursos
+ * usan transferencia bancaria o Go Cuotas (create-manual-payment.js).
+ * Esta restricción es de defensa en profundidad: el frontend ya oculta MP
+ * de los cursos en el PaymentModal, esto bloquea intentos de bypass.
  */
 
 import { SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
@@ -61,6 +66,14 @@ export const handler = async (event) => {
   const product = await productsRepo.findBySlug(cursoSlug, { activeOnly: true });
   if (!product) {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
+  }
+
+  // Sprint 2.10: los cursos no aceptan MercadoPago. Solo transferencia
+  // o Go Cuotas (via create-manual-payment).
+  if (product.modalidad === 'curso') {
+    return error(400, 'Este producto solo puede pagarse con transferencia bancaria o Go Cuotas', {
+      modalidad: product.modalidad,
+    });
   }
 
   const externalReference = generateExternalReference();

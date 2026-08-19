@@ -248,10 +248,15 @@ function PaymentModal({ open, onClose, product, subtitle }) {
               {/* Filtro por modalidad: las cápsulas solo aceptan MercadoPago.
                   Los cursos (u otros) aceptan todos los métodos. */}
               <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
-                {PAYMENT_METHODS
+                  {PAYMENT_METHODS
                   .filter((method) => {
-                    // Cápsulas solo pueden pagarse con MercadoPago.
+                    // Cápsulas: solo MercadoPago (ticket bajo, aprobación automática).
                     if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
+                      return false;
+                    }
+                    // Cursos: solo Transferencia y Go Cuotas (ticket alto, mejor
+                    // margen para Innova evitando la comisión de MP).
+                    if (product.modalidad === 'curso' && method.id === 'mercadopago') {
                       return false;
                     }
                     return true;
