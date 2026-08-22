@@ -1,19 +1,12 @@
 /**
- * Configuración de métodos de pago manuales (transferencia, Go Cuotas).
+ * Configuración de métodos de pago manuales (transferencia, Go Cuotas, Payway).
  *
  * Los datos bancarios están hardcodeados por decisión de Etapa 2. En Fase 3
  * se moverán a la sección Configuración del panel admin para que Innova
  * pueda editarlos sin necesitar deploy.
  *
- * El link de Go Cuotas es un placeholder al home del servicio hasta que
- * Innova genere el link específico de comercio. Cuando lo tengan:
- *   1. Reemplazar GOCUOTAS_URL con el link real.
- *   2. Push a develop, verificar, mergear a prod.
- *
- * Ningún dato acá es sensible en sí mismo — los datos bancarios son
- * los mismos que Innova pone en flyers públicos y en whatsapp para
- * recibir transferencias. Igual, mantenerlos centralizados ayuda a
- * cuidar consistencia visual y a rotar valores rápido si hace falta.
+ * El link de Go Cuotas y la imagen de Payway son placeholders/estáticos.
+ * Cuando cambien, requieren editar este archivo o el asset y push.
  */
 
 export const BANK_DETAILS = {
@@ -26,10 +19,18 @@ export const BANK_DETAILS = {
 };
 
 /**
- * Link de Go Cuotas. Por ahora placeholder al home del servicio hasta
- * que Innova genere el link específico de comercio.
+ * Link de Go Cuotas. Por ahora placeholder al home del servicio si el
+ * producto no tiene su gocuotasUrl configurado (raro, dado que en la
+ * práctica todos los cursos tienen link específico).
  */
 export const GOCUOTAS_URL = 'https://www.gocuotas.com/';
+
+/**
+ * QR de Payway. Imagen estática hosteada en el mismo dominio.
+ * Si el QR cambia (los QR de Payway pueden vencer), reemplazar el archivo
+ * en public/imagenes/payway-qr.jpeg y hacer push.
+ */
+export const PAYWAY_QR_URL = '/imagenes/payway-qr.jpeg';
 
 /**
  * Métodos de pago disponibles en el checkout.
@@ -38,7 +39,7 @@ export const GOCUOTAS_URL = 'https://www.gocuotas.com/';
  *   create-manual-payment.js (o 'mercadopago' para el flujo automático).
  * - label: nombre mostrado al usuario.
  * - description: subtítulo corto explicativo.
- * - handler: 'automatic' (MP) | 'transferencia' | 'gocuotas'.
+ * - handler: 'automatic' (MP) | 'transferencia' | 'gocuotas' | 'payway'.
  */
 export const PAYMENT_METHODS = [
   {
@@ -58,5 +59,11 @@ export const PAYMENT_METHODS = [
     label: 'Go Cuotas',
     description: 'Financiación en cuotas sin tarjeta',
     handler: 'gocuotas',
+  },
+  {
+    id: 'payway',
+    label: 'Payway (QR)',
+    description: 'Escaneá con Modo, Mercado Pago, Cuenta DNI o NaranjaX',
+    handler: 'payway',
   },
 ];

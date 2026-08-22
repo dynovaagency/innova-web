@@ -34,7 +34,7 @@ import * as paymentsRepo from './_lib/repositories/payments.js';
 import * as productsRepo from './_lib/repositories/products.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_METHODS = ['transferencia', 'gocuotas'];
+const VALID_METHODS = ['transferencia', 'gocuotas', 'payway'];
 
 const generateExternalReference = () => {
   return `inv_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -134,6 +134,7 @@ export const handler = async (event) => {
     const messages = {
       transferencia: 'Cuando confirmemos la transferencia, te enviamos el link de acceso por email.',
       gocuotas: 'Cuando confirmemos el pago desde Go Cuotas, te enviamos el link de acceso por email.',
+      payway: 'Cuando confirmemos el pago desde Payway, te enviamos el link de acceso por email.',
     };
 
     return ok({

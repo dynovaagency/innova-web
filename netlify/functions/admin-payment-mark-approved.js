@@ -28,7 +28,7 @@ import * as paymentsRepo from './_lib/repositories/payments.js';
 import { sendAccessEmail } from './_lib/email.js';
 import { resolveProductTitle } from './_lib/products/title-resolver.js';
 
-const MANUAL_METHODS = ['transferencia', 'gocuotas'];
+const MANUAL_METHODS = ['transferencia', 'gocuotas', 'payway'];
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Button from './Button.jsx';
-import { BANK_DETAILS, GOCUOTAS_URL, PAYMENT_METHODS } from '../../lib/paymentConfig.js';
+import { BANK_DETAILS, GOCUOTAS_URL, PAYWAY_QR_URL, PAYMENT_METHODS } from '../../lib/paymentConfig.js';
 import styles from './PaymentModal.module.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -8,16 +8,18 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Modal de compra con selección de método de pago.
  *
- * Sprint 2.7: soporta precios distintos por método.
- *   - Cada card de método muestra su precio efectivo.
- *   - Si el producto tiene priceTransferencia, se usa ese en vez del base.
- *   - Si el producto tiene priceGocuotas, se usa ese en vez del base.
- *   - Si el producto tiene gocuotasUrl, se usa ese link en vez del genérico.
+ * Métodos soportados:
+ *   - Mercado Pago (automático, solo cápsulas).
+ *   - Transferencia bancaria (manual, solo cursos).
+ *   - Go Cuotas (manual, solo cursos).
+ *   - Payway (manual, solo cursos, QR estático).
  *
- * Props:
- *   - open, onClose
- *   - product: producto completo del catálogo (para leer precios y URLs)
- *   - subtitle (opcional): "CURSO" o "CÁPSULA" mostrado arriba del título
+ * La regla "MP en cápsulas, resto en cursos" está en el .filter() del
+ * .map de PAYMENT_METHODS más abajo. Backend refuerza la restricción.
+ *
+ * Precios por método (transferencia, go_cuotas): si el producto tiene
+ * priceTransferencia o priceGocuotas, se usan; si no, el precio base.
+ * Payway usa siempre el precio base por ahora (no tiene pricePayway).
  */
 
 const STEP = {
@@ -25,10 +27,10 @@ const STEP = {
   REDIRECTING_MP: 'redirecting_mp',
   CONFIRM_TRANSFERENCIA: 'confirm_transferencia',
   CONFIRM_GOCUOTAS: 'confirm_gocuotas',
+  CONFIRM_PAYWAY: 'confirm_payway',
   ERROR: 'error',
 };
 
-// Formatea número a "$125.000"
 const formatARS = (amount) => {
   const nf = new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 0,
@@ -37,7 +39,6 @@ const formatARS = (amount) => {
   return `$${nf.format(amount || 0)}`;
 };
 
-// Resuelve el precio efectivo según el método
 const resolvePrice = (product, methodId) => {
   if (!product) return 0;
   if (methodId === 'transferencia' && product.priceTransferencia) return product.priceTransferencia;
@@ -57,16 +58,13 @@ function PaymentModal({ open, onClose, product, subtitle }) {
   const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
   const emailShowError = emailTouched && email.length > 0 && !emailValid;
 
-  // Calcular el precio efectivo del método seleccionado
   const effectivePrice = useMemo(() => {
     if (!selectedMethod || !product) return product?.price || 0;
     return resolvePrice(product, selectedMethod.id);
   }, [selectedMethod, product]);
 
-  // Link de Go Cuotas: usar el del producto si existe, si no el placeholder global
   const gocuotasLink = product?.gocuotasUrl || GOCUOTAS_URL;
 
-  // Reset al cerrar
   useEffect(() => {
     if (!open) {
       setStep(STEP.SELECT);
@@ -77,14 +75,6 @@ function PaymentModal({ open, onClose, product, subtitle }) {
       setCopyFeedback('');
     }
   }, [open]);
-
-  // Si es cápsula, pre-seleccionar MP automáticamente (único método permitido).
-  useEffect(() => {
-    if (open && product?.modalidad === 'capsula' && !selectedMethod) {
-      const mp = PAYMENT_METHODS.find((m) => m.id === 'mercadopago');
-      if (mp) setSelectedMethod(mp);
-    }
-  }, [open, product, selectedMethod]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,6 +96,14 @@ function PaymentModal({ open, onClose, product, subtitle }) {
       return () => clearTimeout(timer);
     }
   }, [open]);
+
+  // Si es cápsula, pre-seleccionar MP automáticamente (único método permitido).
+  useEffect(() => {
+    if (open && product?.modalidad === 'capsula' && !selectedMethod) {
+      const mp = PAYMENT_METHODS.find((m) => m.id === 'mercadopago');
+      if (mp) setSelectedMethod(mp);
+    }
+  }, [open, product, selectedMethod]);
 
   if (!open) return null;
   if (!product) return null;
@@ -139,6 +137,7 @@ function PaymentModal({ open, onClose, product, subtitle }) {
       return;
     }
 
+    // Flujos manuales (transferencia, gocuotas, payway)
     setError('');
     try {
       const res = await fetch('/.netlify/functions/create-manual-payment', {
@@ -158,6 +157,8 @@ function PaymentModal({ open, onClose, product, subtitle }) {
         setStep(STEP.CONFIRM_TRANSFERENCIA);
       } else if (selectedMethod.id === 'gocuotas') {
         setStep(STEP.CONFIRM_GOCUOTAS);
+      } else if (selectedMethod.id === 'payway') {
+        setStep(STEP.CONFIRM_PAYWAY);
       }
     } catch (err) {
       setError(err.message || 'Hubo un problema al registrar el pago');
@@ -245,54 +246,51 @@ function PaymentModal({ open, onClose, product, subtitle }) {
               )}
 
               <p className={styles.methodsLabel}>Elegí cómo querés pagar</p>
-              {/* Filtro por modalidad: las cápsulas solo aceptan MercadoPago.
-                  Los cursos (u otros) aceptan todos los métodos. */}
               <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
-                  {PAYMENT_METHODS
+                {PAYMENT_METHODS
                   .filter((method) => {
-                    // Cápsulas: solo MercadoPago (ticket bajo, aprobación automática).
+                    // Cápsulas: solo MercadoPago.
                     if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
                       return false;
                     }
-                    // Cursos: solo Transferencia y Go Cuotas (ticket alto, mejor
-                    // margen para Innova evitando la comisión de MP).
+                    // Cursos: excluir MercadoPago.
                     if (product.modalidad === 'curso' && method.id === 'mercadopago') {
                       return false;
                     }
                     return true;
                   })
                   .map((method) => {
-                  const selected = selectedMethod?.id === method.id;
-                  const methodPrice = resolvePrice(product, method.id);
-                  const isDiscounted = methodPrice < product.price;
+                    const selected = selectedMethod?.id === method.id;
+                    const methodPrice = resolvePrice(product, method.id);
+                    const isDiscounted = methodPrice < product.price;
 
-                  return (
-                    <button
-                      key={method.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setSelectedMethod(method)}
-                      className={`${styles.methodCard} ${
-                        selected ? styles.methodCardSelected : ''
-                      }`}
-                    >
-                      <span className={styles.methodMark} aria-hidden="true" />
-                      <span className={styles.methodText}>
-                        <span className={styles.methodTopRow}>
-                          <span className={styles.methodLabel}>{method.label}</span>
-                          <span className={styles.methodPriceGroup}>
-                            <span className={styles.methodPrice}>{formatARS(methodPrice)}</span>
-                            {isDiscounted && (
-                              <span className={styles.methodDiscountBadge}>OFERTA</span>
-                            )}
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setSelectedMethod(method)}
+                        className={`${styles.methodCard} ${
+                          selected ? styles.methodCardSelected : ''
+                        }`}
+                      >
+                        <span className={styles.methodMark} aria-hidden="true" />
+                        <span className={styles.methodText}>
+                          <span className={styles.methodTopRow}>
+                            <span className={styles.methodLabel}>{method.label}</span>
+                            <span className={styles.methodPriceGroup}>
+                              <span className={styles.methodPrice}>{formatARS(methodPrice)}</span>
+                              {isDiscounted && (
+                                <span className={styles.methodDiscountBadge}>OFERTA</span>
+                              )}
+                            </span>
                           </span>
+                          <span className={styles.methodDescription}>{method.description}</span>
                         </span>
-                        <span className={styles.methodDescription}>{method.description}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 
@@ -419,6 +417,42 @@ function PaymentModal({ open, onClose, product, subtitle }) {
               <div className={styles.confirmMessage}>
                 <p>
                   Cuando confirmemos el pago desde Go Cuotas, te enviamos el link de acceso al mail{' '}
+                  <strong>{email}</strong>.
+                </p>
+                <p className={styles.confirmSmall}>
+                  Este proceso puede tardar unos minutos hasta unas horas.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.actions}>
+              <Button variant="secondary" size="lg" onClick={onClose}>
+                Entendido, cerrar
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* PASO 2D: Confirmación de Payway */}
+        {step === STEP.CONFIRM_PAYWAY && (
+          <>
+            <div className={styles.body}>
+              <h3 className={styles.confirmTitle}>Escaneá el QR para pagar</h3>
+              <p className={styles.confirmIntro}>
+                Abrí tu billetera favorita (Modo, Mercado Pago, Cuenta DNI o NaranjaX) y escaneá el QR para completar el pago por <strong>{formatARS(effectivePrice)}</strong>.
+              </p>
+
+              <div className={styles.paywayQrWrap}>
+                <img
+                  src={PAYWAY_QR_URL}
+                  alt="Código QR de Payway para pagar"
+                  className={styles.paywayQrImage}
+                />
+              </div>
+
+              <div className={styles.confirmMessage}>
+                <p>
+                  Cuando confirmemos el pago, te enviamos el link de acceso al mail{' '}
                   <strong>{email}</strong>.
                 </p>
                 <p className={styles.confirmSmall}>
