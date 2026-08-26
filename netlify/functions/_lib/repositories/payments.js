@@ -81,14 +81,4 @@ export const deleteByRef = async (externalReference) => {
   }
   await getStore().delete(externalReference);
   return { deleted: true, payment: existing };
-};export const deleteByRef = async (externalReference) => {
-  if (!externalReference) {
-    throw new Error('externalReference es requerido');
-  }
-  const existing = await getStore().get(externalReference);
-  if (!existing) {
-    return { deleted: false, reason: 'not_found' };
-  }
-  await getStore().delete(externalReference);
-  return { deleted: true, payment: existing };
 };
