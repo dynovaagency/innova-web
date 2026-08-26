@@ -70,3 +70,25 @@ export const findAll = async ({
   if (toDate) all = all.filter((p) => new Date(p.createdAt) <= new Date(toDate));
   return all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
+
+export const deleteByRef = async (externalReference) => {
+  if (!externalReference) {
+    throw new Error('externalReference es requerido');
+  }
+  const existing = await getStore().get(externalReference);
+  if (!existing) {
+    return { deleted: false, reason: 'not_found' };
+  }
+  await getStore().delete(externalReference);
+  return { deleted: true, payment: existing };
+};export const deleteByRef = async (externalReference) => {
+  if (!externalReference) {
+    throw new Error('externalReference es requerido');
+  }
+  const existing = await getStore().get(externalReference);
+  if (!existing) {
+    return { deleted: false, reason: 'not_found' };
+  }
+  await getStore().delete(externalReference);
+  return { deleted: true, payment: existing };
+};

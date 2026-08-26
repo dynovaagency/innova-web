@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Copy, ExternalLink, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Copy, ExternalLink, CheckCircle, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/admin/PageHeader.jsx';
 import LoadingState from '../../components/admin/LoadingState.jsx';
 import ErrorState from '../../components/admin/ErrorState.jsx';
@@ -8,6 +8,7 @@ import Badge from '../../components/admin/Badge.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import Toast from '../../components/admin/Toast.jsx';
 import useToast from '../../hooks/useToast.js';
+import useAdminSession from '../../hooks/useAdminSession.js';
 import { formatCurrency, formatDateTime } from '../../lib/format.js';
 import styles from './PagoDetalle.module.css';
 
@@ -46,6 +47,8 @@ function PagoDetalle() {
 
   const [confirmResend, setConfirmResend] = useState({ open: false, loading: false });
   const [confirmApprove, setConfirmApprove] = useState({ open: false, loading: false });
+  const [confirmDelete, setConfirmDelete] = useState({ open: false, loading: false });
+  const { admin: currentAdmin } = useAdminSession();
 
   const fetchPayment = useCallback(async () => {
     setLoading(true);
@@ -154,6 +157,32 @@ function PagoDetalle() {
     }
   };
 
+    const handleDeleteConfirm = async () => {
+    setConfirmDelete((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch('/.netlify/functions/admin-payment-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ ref: externalReference }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body.error || 'No se pudo eliminar el pago');
+      }
+      toast.success(
+        'Pago eliminado',
+        'El registro se eliminó del sistema.'
+      );
+      // Redirigimos al listado después de eliminar.
+      setTimeout(() => navigate('/admin/pagos'), 1200);
+    } catch (err) {
+      console.error('[PagoDetalle] delete error:', err);
+      toast.error('No se pudo eliminar', err.message);
+      setConfirmDelete((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
   const handleCopy = async (text, label) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -201,6 +230,7 @@ function PagoDetalle() {
   const canApprove =
     payment.status === 'pending' &&
     !!payment.buyerEmail;
+  const canDelete = currentAdmin?.role === 'superadmin';
 
   return (
     <>
@@ -241,6 +271,17 @@ function PagoDetalle() {
               <Mail size={16} aria-hidden="true" />
               Reenviar acceso
             </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setConfirmDelete({ open: true, loading: false })}
+                className={styles.dangerBtn}
+                title="Eliminar este pago del sistema. Acción irreversible."
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                Eliminar
+              </button>
+            )}
           </div>
         }
       />
@@ -464,6 +505,19 @@ function PagoDetalle() {
         loading={confirmApprove.loading}
         onConfirm={handleApproveConfirm}
         onCancel={() => setConfirmApprove({ open: false, loading: false })}
+      />
+      <ConfirmDialog
+        open={confirmDelete.open}
+        title="¿Eliminar este pago?"
+        message={
+          payment.status === 'approved'
+            ? `Vas a eliminar un pago APROBADO del comprador ${payment.buyerEmail} por ${formatCurrency(payment.amount, payment.currency)}. Esto borra un registro de venta real y es irreversible. ¿Estás seguro?`
+            : `Vas a eliminar el pago del comprador ${payment.buyerEmail || 'sin email'} por ${formatCurrency(payment.amount, payment.currency)} (${payment.externalReference}). Esta acción es irreversible.`
+        }
+        confirmLabel="Sí, eliminar"
+        loading={confirmDelete.loading}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete({ open: false, loading: false })}
       />
 
       <Toast {...toast.props} />
