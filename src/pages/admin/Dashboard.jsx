@@ -92,7 +92,7 @@ function Dashboard() {
         </h2>
         <div className={styles.kpiGrid}>
           <KpiCard
-            label="Facturación del mes"
+            label="Ingresos del mes"
             value={formatCurrency(kpis.currentMonth.revenue, kpis.currentMonth.currency)}
             delta={kpis.revenueDelta}
           />
@@ -102,7 +102,7 @@ function Dashboard() {
             delta={kpis.countDelta}
           />
           <KpiCard
-            label="Facturación total histórica"
+            label="Ingresos totales"
             value={formatCurrency(kpis.total.revenue, kpis.total.currency)}
             delta={null}
           />
