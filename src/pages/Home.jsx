@@ -19,16 +19,15 @@ const HERO_AUTOPLAY_MS = 5000;
 
 const services = [
   {
-    slug: 'capsula-formativa',
-    tag: 'DESTACADO DEL MES',
-    title: 'Cápsula Formativa',
+    slug: 'capsulas',
+    tag: 'FORMACIÓN A TU RITMO',
+    title: 'Cápsulas Formativas',
     description:
-      'Accedé a nuestra cápsula de formación especializada de este mes. Contenido actualizado, práctico y diseñado para fortalecer tus competencias en el Trabajo Social contemporáneo.',
-    cta: 'Ver Cápsula',
-    href: '/servicios/capsula-formativa',
+      'Explorá nuestras cápsulas de formación especializada. Contenido actualizado y práctico, diseñado para fortalecer tus competencias en el Trabajo Social contemporáneo.',
+    cta: 'Ver Cápsulas',
+    href: '/servicios/capsulas',
     accent: 'red',
     icon: 'video',
-    badge: 'DESTACADO',
     image: cardCapsula,
   },
   {

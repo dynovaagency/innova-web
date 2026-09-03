@@ -10,6 +10,15 @@
 [functions]
   node_bundler = "esbuild"
 
+# Redirect 301 — la ruta vieja de la cápsula (single) fue reemplazada por
+# el listado dinámico. Cualquier link viejo (bookmark, mail histórico,
+# Google) llega ahora a la cápsula específica.
+[[redirects]]
+  from = "/servicios/capsula-formativa"
+  to = "/servicios/vulnerabilidad-social"
+  status = 301
+  force = true
+
 # SPA fallback — soporte para rutas de React Router
 # (también está en public/_redirects, pero acá queda explícito)
 [[redirects]]

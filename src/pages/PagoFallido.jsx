@@ -44,8 +44,8 @@ function PagoFallido() {
           </p>
         )}
         <div className={styles.actions}>
-          <Link to="/servicios/capsula-formativa" className={styles.backBtn}>
-            Volver a intentar
+          <Link to="/servicios/capsulas" className={styles.backBtn}>
+            Volver al listado
           </Link>
           <Link to="/" className={styles.secondaryBtn}>Ir al inicio</Link>
         </div>

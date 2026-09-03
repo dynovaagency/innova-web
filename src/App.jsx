@@ -3,7 +3,6 @@ import Layout from './components/layout/Layout.jsx';
 import Home from './pages/Home.jsx';
 import QuienesSomos from './pages/QuienesSomos.jsx';
 import Servicios from './pages/Servicios.jsx';
-import CapsulaDetalle from './pages/CapsulaDetalle.jsx';
 import Formaciones from './pages/Formaciones.jsx';
 import Orientacion from './pages/Orientacion.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
@@ -41,7 +40,6 @@ function App() {
         <Route path="/servicios/capsulas" element={<CapsulasPublicas />} />
         <Route path="/servicios/cursos" element={<Cursos />} />
         <Route path="/servicios/:slug" element={<CapsulaDetallePublica />} />
-        <Route path="/servicios/capsula-formativa" element={<CapsulaDetalle />} />
         <Route path="/formaciones" element={<Formaciones />} />
         <Route path="/orientacion" element={<Orientacion />} />
         <Route path="/biblioteca" element={<Biblioteca />} />
