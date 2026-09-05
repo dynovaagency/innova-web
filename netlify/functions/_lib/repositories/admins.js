@@ -21,7 +21,7 @@ import { storeClient, normalizeEmail } from './_base.js';
 
 const INITIAL_ADMINS = [
   {
-    email: 'felixdoura@gmail.com',
+    email: 'felixdoura.dev@gmail.com',
     name: 'Felix Doura',
     role: 'superadmin',
   },
