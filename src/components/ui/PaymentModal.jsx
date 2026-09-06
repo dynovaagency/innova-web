@@ -249,12 +249,15 @@ function PaymentModal({ open, onClose, product, subtitle }) {
               <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
                 {PAYMENT_METHODS
                   .filter((method) => {
-                    // Cápsulas: solo MercadoPago.
+                    // Cápsulas: solo MercadoPago (ticket bajo, aprobación automática).
                     if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
                       return false;
                     }
-                    // Cursos: excluir MercadoPago.
-                    if (product.modalidad === 'curso' && method.id === 'mercadopago') {
+                    // Hotfix: Payway deshabilitado temporalmente porque el QR
+                    // de producción está fallando. MP vuelve a estar disponible
+                    // en cursos como fallback. Revertir cuando Innova regenere
+                    // el QR de Payway.
+                    if (product.modalidad === 'curso' && method.id === 'payway') {
                       return false;
                     }
                     return true;

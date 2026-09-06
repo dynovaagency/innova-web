@@ -70,11 +70,11 @@ export const handler = async (event) => {
 
   // Sprint 2.10: los cursos no aceptan MercadoPago. Solo transferencia
   // o Go Cuotas (via create-manual-payment).
-  if (product.modalidad === 'curso') {
-    return error(400, 'Este producto solo puede pagarse con transferencia bancaria o Go Cuotas', {
-      modalidad: product.modalidad,
-    });
-  }
+ // if (product.modalidad === 'curso') {
+ //   return error(400, 'Este producto solo puede pagarse con transferencia bancaria o Go Cuotas', {
+ //     modalidad: product.modalidad,
+ //   });
+ // }
 
   const externalReference = generateExternalReference();
 
