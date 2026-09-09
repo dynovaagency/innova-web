@@ -16,6 +16,7 @@ import RecuperarAcceso from './pages/RecuperarAcceso.jsx';
 import CapsulasPublicas from './pages/Capsulas.jsx';
 import CapsulaDetallePublica from './pages/CapsulaDetallePublica.jsx';
 import Cursos from './pages/Cursos.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -31,6 +32,8 @@ import PagoDetalle from './pages/admin/PagoDetalle.jsx';
 
 function App() {
   return (
+    <AuthProvider>
+
     <Routes>
       {/* Rutas públicas con layout del sitio (navbar + footer) */}
       <Route element={<Layout />}>
@@ -68,6 +71,7 @@ function App() {
       <Route path="configuracion" element={<Configuracion />} />
     </Route>
     </Routes>
+    </AuthProvider>
   );
 }
 
