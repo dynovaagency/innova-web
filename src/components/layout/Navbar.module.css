@@ -169,6 +169,39 @@
   border-color: var(--color-secondary);
 }
 
+.authBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-lg);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(21, 63, 113, 0.25);
+  white-space: nowrap;
+}
+
+.authBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(21, 63, 113, 0.35);
+}
+
+.authBtn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 720px) {
+  .authBtn {
+    padding: var(--space-xs) var(--space-md);
+  }
+}
+
 @media (max-width: 1024px) {
   .container {
     padding: var(--space-md) var(--space-lg);

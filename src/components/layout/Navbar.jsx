@@ -1,4 +1,8 @@
-import { NavLink, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { LogIn, UserCircle } from 'lucide-react';
+import { useAuthContext } from '../../context/AuthContext.jsx';
+import LoginModal from '../auth/LoginModal.jsx';
 import styles from './Navbar.module.css';
 
 const navItems = [
@@ -39,58 +43,90 @@ function LogoMark({ size = 32 }) {
 }
 
 function Navbar() {
+  const { user, loading } = useAuthContext();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    navigate('/mi-cuenta');
+  };
+
   return (
-    <header className={styles.header}>
-      <div className={styles.container}>
-        <Link to="/" className={styles.brand} aria-label="Innova Trabajo Social — Inicio">
-          <LogoMark size={36} />
-          <span className={styles.brandText}>
-            INNOVA
-            <span className={styles.brandTagline}>TRABAJO SOCIAL</span>
-          </span>
-        </Link>
-
-        <nav className={styles.nav} aria-label="Navegación principal">
-          <ul className={styles.list}>
-            {navItems.map((item) => (
-              <li key={item.to} className={item.hasDropdown ? styles.hasDropdown : ''}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) =>
-                    isActive ? `${styles.link} ${styles.linkActive}` : styles.link
-                  }
-                >
-                  {item.label}
-                  {item.hasDropdown && (
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  )}
-                </NavLink>
-                {item.hasDropdown && (
-                  <ul className={styles.dropdown}>
-                    {item.dropdown.map((sub) => (
-                      <li key={sub.to}>
-                        <Link to={sub.to} className={styles.dropdownLink}>
-                          {sub.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className={styles.actions}>
-          <Link to="/inscripcion" className={styles.inscripcionBtn}>
-            Inscripción
+    <>
+      <header className={styles.header}>
+        <div className={styles.container}>
+          <Link to="/" className={styles.brand} aria-label="Innova Trabajo Social — Inicio">
+            <LogoMark size={36} />
+            <span className={styles.brandText}>
+              INNOVA
+              <span className={styles.brandTagline}>TRABAJO SOCIAL</span>
+            </span>
           </Link>
+
+          <nav className={styles.nav} aria-label="Navegación principal">
+            <ul className={styles.list}>
+              {navItems.map((item) => (
+                <li key={item.to} className={item.hasDropdown ? styles.hasDropdown : ''}>
+                  <NavLink
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      isActive ? `${styles.link} ${styles.linkActive}` : styles.link
+                    }
+                  >
+                    {item.label}
+                    {item.hasDropdown && (
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    )}
+                  </NavLink>
+                  {item.hasDropdown && (
+                    <ul className={styles.dropdown}>
+                      {item.dropdown.map((sub) => (
+                        <li key={sub.to}>
+                          <Link to={sub.to} className={styles.dropdownLink}>
+                            {sub.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <div className={styles.actions}>
+            {/* Mientras carga la sesión inicial, no mostramos nada para
+                evitar el "parpadeo" de Ingresar → Tu Perfil al recargar. */}
+            {!loading && (
+              user ? (
+                <button
+                  type="button"
+                  onClick={handleProfileClick}
+                  className={styles.authBtn}
+                >
+                  <UserCircle size={18} aria-hidden="true" />
+                  Tu Perfil
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setLoginOpen(true)}
+                  className={styles.authBtn}
+                >
+                  <LogIn size={18} aria-hidden="true" />
+                  Ingresar
+                </button>
+              )
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+    </>
   );
 }
 
