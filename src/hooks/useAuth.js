@@ -92,20 +92,21 @@ function useAuth() {
     return data;
   }, []);
 
-  /**
+    /**
    * Registro con email + password + datos del perfil.
    *
    * profileData debe tener:
    *   nombre, apellido, documento_tipo ('CUIL' | 'CUIT'), documento_numero.
    * Opcional: telefono, provincia, profesion.
    *
-   * El flow es:
+   * Flow:
    *   1. Crear usuario en Supabase Auth (email + password).
-   *   2. Insertar registro en tabla `usuarios` con el mismo id.
+   *   2. Llamar al endpoint /register-profile que inserta en la tabla
+   *      usuarios usando service_role key (bypassa RLS).
    *
-   * Si el paso 2 falla, el usuario queda "huérfano" en auth pero sin
-   * profile. Es un edge case raro pero hay que manejarlo (retry manual
-   * o limpieza posterior).
+   * La necesidad del endpoint viene de que, con "Confirm email" activado,
+   * al usuario recién creado no le dan sesión hasta confirmar el email,
+   * y sin sesión no podemos insertar en usuarios porque la RLS lo bloquea.
    */
   const signUp = useCallback(async (email, password, profileData) => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -122,36 +123,32 @@ function useAuth() {
       throw new Error('No se pudo crear el usuario en Auth');
     }
 
-    // Paso 2: insertar en tabla usuarios
-    const { error: profileError } = await supabase.from('usuarios').insert({
-      id: newUserId,
-      email: normalizedEmail,
-      nombre: profileData.nombre.trim(),
-      apellido: profileData.apellido.trim(),
-      documento_tipo: profileData.documento_tipo,
-      documento_numero: profileData.documento_numero.trim(),
-      telefono: profileData.telefono?.trim() || null,
-      provincia: profileData.provincia?.trim() || null,
-      profesion: profileData.profesion?.trim() || null,
-      role: 'user',
-      active: true,
+    // Paso 2: llamar al endpoint que hace el insert bypassando RLS
+    const res = await fetch('/.netlify/functions/register-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: newUserId,
+        email: normalizedEmail,
+        nombre: profileData.nombre,
+        apellido: profileData.apellido,
+        documento_tipo: profileData.documento_tipo,
+        documento_numero: profileData.documento_numero,
+        telefono: profileData.telefono,
+        provincia: profileData.provincia,
+        profesion: profileData.profesion,
+      }),
     });
 
-    if (profileError) {
-      console.error('[useAuth] error insertando profile:', profileError);
-      // No hacemos throw — el usuario ya está creado en auth, la sesión
-      // queda activa. El error se loggea para diagnóstico.
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error('[useAuth] error insertando profile:', body);
       throw new Error(
-        'Cuenta creada pero no pudimos guardar tus datos. Contactanos para completar tu perfil.'
+        body.error || 'Cuenta creada pero no pudimos guardar tus datos. Contactanos para completar tu perfil.'
       );
     }
 
     return authData;
-  }, []);
-
-  const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
   }, []);
 
   const resetPassword = useCallback(async (email) => {

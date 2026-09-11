@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { LogIn, UserCircle } from 'lucide-react';
+import { LogIn, UserCircle, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import LoginModal from '../auth/LoginModal.jsx';
 import styles from './Navbar.module.css';
@@ -43,13 +43,53 @@ function LogoMark({ size = 32 }) {
 }
 
 function Navbar() {
-  const { user, loading } = useAuthContext();
+  const { user, profile, loading, signOut } = useAuthContext();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const menuRef = useRef(null);
 
-  const handleProfileClick = () => {
+  // Cerrar el dropdown al hacer click fuera
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [userMenuOpen]);
+
+  // Cerrar el dropdown con Escape
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setUserMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [userMenuOpen]);
+
+  const handleGoToProfile = () => {
+    setUserMenuOpen(false);
     navigate('/mi-cuenta');
   };
+
+  const handleSignOut = async () => {
+    setUserMenuOpen(false);
+    try {
+      await signOut();
+      // No hace falta navegar — Supabase actualiza el user a null y
+      // el navbar re-renderiza mostrando "Ingresar" automáticamente.
+    } catch (err) {
+      console.error('[Navbar] error signOut:', err);
+    }
+  };
+
+  // Nombre a mostrar en el dropdown (si tenemos profile, usar nombre;
+  // si no, usar el email antes del @).
+  const displayName = profile?.nombre || user?.email?.split('@')[0] || 'Usuario';
 
   return (
     <>
@@ -98,23 +138,59 @@ function Navbar() {
           </nav>
 
           <div className={styles.actions}>
-            {/* Botón "Inscripción" original — CTA principal para nuevos visitantes */}
             <Link to="/inscripcion" className={styles.inscripcionBtn}>
               Inscripción
             </Link>
 
-            {/* Botón de auth. Mientras carga la sesión inicial, no mostramos
-                nada para evitar el "parpadeo" de Ingresar → Tu Perfil al recargar. */}
             {!loading && (
               user ? (
-                <button
-                  type="button"
-                  onClick={handleProfileClick}
-                  className={styles.authBtn}
-                >
-                  <UserCircle size={18} aria-hidden="true" />
-                  Tu Perfil
-                </button>
+                <div className={styles.userMenu} ref={menuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setUserMenuOpen((v) => !v)}
+                    className={styles.authBtn}
+                    aria-haspopup="true"
+                    aria-expanded={userMenuOpen}
+                  >
+                    <UserCircle size={18} aria-hidden="true" />
+                    Tu Perfil
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className={userMenuOpen ? styles.chevronOpen : styles.chevron}
+                    />
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className={styles.userDropdown} role="menu">
+                      <div className={styles.userInfo}>
+                        <p className={styles.userGreeting}>Hola, {displayName}</p>
+                        {user.email && (
+                          <p className={styles.userEmail}>{user.email}</p>
+                        )}
+                      </div>
+                      <div className={styles.userDropdownDivider} />
+                      <button
+                        type="button"
+                        onClick={handleGoToProfile}
+                        className={styles.userDropdownItem}
+                        role="menuitem"
+                      >
+                        <UserCircle size={16} aria-hidden="true" />
+                        Ir a mi cuenta
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className={`${styles.userDropdownItem} ${styles.userDropdownItemDanger}`}
+                        role="menuitem"
+                      >
+                        <LogOut size={16} aria-hidden="true" />
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button
                   type="button"
