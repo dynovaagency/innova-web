@@ -420,17 +420,27 @@ function Registro() {
  * Traduce errores comunes de Supabase Auth al español.
  */
 function mapErrorToSpanish(message) {
-  const msg = String(message).toLowerCase();
-  if (msg.includes('user already registered') || msg.includes('already exists')) {
+  const msg = String(message);
+  const lower = msg.toLowerCase();
+
+  // Nuestro marker interno cuando detectamos email duplicado en useAuth
+  if (msg === 'EMAIL_ALREADY_REGISTERED') {
     return 'Ya existe una cuenta con ese email. Iniciá sesión o recuperá tu contraseña.';
   }
-  if (msg.includes('rate limit') || msg.includes('too many')) {
+
+  if (lower.includes('user already registered') || lower.includes('already exists')) {
+    return 'Ya existe una cuenta con ese email. Iniciá sesión o recuperá tu contraseña.';
+  }
+
+  if (lower.includes('rate limit') || lower.includes('too many')) {
     return 'Demasiados intentos. Esperá un momento y probá de nuevo.';
   }
-  if (msg.includes('cuenta creada pero no pudimos guardar')) {
+
+  if (lower.includes('cuenta creada pero no pudimos guardar')) {
     // Error que lanzamos desde useAuth cuando falla el insert en tabla usuarios
-    return message;
+    return msg;
   }
+
   return 'No pudimos crear la cuenta. Intentá de nuevo en unos segundos.';
 }
 

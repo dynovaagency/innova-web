@@ -118,6 +118,14 @@ function useAuth() {
     });
     if (authError) throw authError;
 
+    // Supabase por seguridad no lanza error si el email ya está registrado
+    // (para prevenir enumeración de usuarios). Detectamos el caso mirando
+    // el array de identities: si viene vacío, el usuario ya existía.
+    const identities = authData.user?.identities;
+    if (Array.isArray(identities) && identities.length === 0) {
+      throw new Error('EMAIL_ALREADY_REGISTERED');
+    }
+
     const newUserId = authData.user?.id;
     if (!newUserId) {
       throw new Error('No se pudo crear el usuario en Auth');
