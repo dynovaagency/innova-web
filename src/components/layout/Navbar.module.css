@@ -144,6 +144,7 @@
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  gap: var(--space-md);
 }
 
 /* Botón "Inscripción": fondo blanco, texto azul, pill */
@@ -174,26 +175,26 @@
   align-items: center;
   gap: var(--space-2xs);
   padding: var(--space-xs) var(--space-lg);
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  border: none;
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(21, 63, 113, 0.25);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
   white-space: nowrap;
 }
 
 .authBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(21, 63, 113, 0.35);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
 }
 
 .authBtn:active {
-  transform: translateY(0);
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 @media (max-width: 720px) {

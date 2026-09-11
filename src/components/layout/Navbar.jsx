@@ -98,8 +98,13 @@ function Navbar() {
           </nav>
 
           <div className={styles.actions}>
-            {/* Mientras carga la sesión inicial, no mostramos nada para
-                evitar el "parpadeo" de Ingresar → Tu Perfil al recargar. */}
+            {/* Botón "Inscripción" original — CTA principal para nuevos visitantes */}
+            <Link to="/inscripcion" className={styles.inscripcionBtn}>
+              Inscripción
+            </Link>
+
+            {/* Botón de auth. Mientras carga la sesión inicial, no mostramos
+                nada para evitar el "parpadeo" de Ingresar → Tu Perfil al recargar. */}
             {!loading && (
               user ? (
                 <button
