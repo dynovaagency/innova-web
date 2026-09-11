@@ -176,8 +176,8 @@
   gap: var(--space-2xs);
   padding: var(--space-xs) var(--space-lg);
   background-color: transparent;
-  color: var(--color-primary);
-  border: 1.5px solid var(--color-primary);
+  color: var(--color-text-inverse);
+  border: 1.5px solid var(--color-text-inverse);
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--font-size-sm);
@@ -188,13 +188,12 @@
 }
 
 .authBtn:hover {
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
+  background-color: var(--color-text-inverse);
+  color: var(--color-primary);
 }
 
 .authBtn:active {
-  background-color: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
 @media (max-width: 720px) {
