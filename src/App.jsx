@@ -17,6 +17,10 @@ import CapsulasPublicas from './pages/Capsulas.jsx';
 import CapsulaDetallePublica from './pages/CapsulaDetallePublica.jsx';
 import Cursos from './pages/Cursos.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import Registro from './pages/Registro.jsx';
+import RegistroExitoso from './pages/RegistroExitoso.jsx';
+import EmailConfirmado from './pages/EmailConfirmado.jsx';
+import Terminos from './pages/Terminos.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -53,6 +57,10 @@ function App() {
         <Route path="/pago-fallido" element={<PagoFallido />} />
         <Route path="/mock-checkout" element={<MockCheckout />} />
         <Route path="/recuperar-acceso" element={<RecuperarAcceso />} />
+        <Route path="/registro" element={<Registro />} />
+        <Route path="/registro-exitoso" element={<RegistroExitoso />} />
+        <Route path="/email-confirmado" element={<EmailConfirmado />} />
+        <Route path="/terminos" element={<Terminos />} />
       </Route>
 
       {/* Rutas de autenticación admin (sin layout público, sin layout admin) */}
