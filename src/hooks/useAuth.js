@@ -151,6 +151,12 @@ function useAuth() {
     return authData;
   }, []);
 
+    // Cerrar sesión
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  }, []);
+
   const resetPassword = useCallback(async (email) => {
     const normalizedEmail = email.trim().toLowerCase();
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
