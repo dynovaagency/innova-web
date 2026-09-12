@@ -24,6 +24,9 @@ import Terminos from './pages/Terminos.jsx';
 import RecuperarContrasena from './pages/RecuperarContrasena.jsx';
 import ResetearContrasena from './pages/ResetearContrasena.jsx';
 import ContrasenaActualizada from './pages/ContrasenaActualizada.jsx';
+import RequireAuth from './components/auth/RequireAuth.jsx';
+import UserLayout from './pages/mi-cuenta/UserLayout.jsx';
+import MiDashboard from './pages/mi-cuenta/MiDashboard.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -67,6 +70,14 @@ function App() {
         <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
         <Route path="/resetear-contrasena" element={<ResetearContrasena />} />
         <Route path="/contrasena-actualizada" element={<ContrasenaActualizada />} />
+      </Route>
+
+      {/* Rutas del panel de alumno (protegidas por RequireAuth) */}
+      <Route element={<RequireAuth />}>
+        <Route path="/mi-cuenta" element={<UserLayout />}>
+          <Route index element={<MiDashboard />} />
+          {/* mis-cursos, perfil, contrasena vienen en 2.6b y 2.6c */}
+        </Route>
       </Route>
 
       {/* Rutas de autenticación admin (sin layout público, sin layout admin) */}
