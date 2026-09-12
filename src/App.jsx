@@ -28,6 +28,8 @@ import RequireAuth from './components/auth/RequireAuth.jsx';
 import UserLayout from './pages/mi-cuenta/UserLayout.jsx';
 import MiDashboard from './pages/mi-cuenta/MiDashboard.jsx';
 import MisCursos from './pages/mi-cuenta/MisCursos.jsx';
+import MiPerfil from './pages/mi-cuenta/MiPerfil.jsx';
+import CambiarContrasena from './pages/mi-cuenta/CambiarContrasena.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -78,7 +80,8 @@ function App() {
         <Route path="/mi-cuenta" element={<UserLayout />}>
           <Route index element={<MiDashboard />} />
           <Route path="mis-cursos" element={<MisCursos />} />
-          {/* perfil, contrasena vienen en 2.6b y 2.6c */}
+          <Route path="perfil" element={<MiPerfil />} />
+          <Route path="contrasena" element={<CambiarContrasena />} />
         </Route>
       </Route>
 
