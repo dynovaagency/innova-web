@@ -1,85 +1,76 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Button from './Button.jsx';
-import { BANK_DETAILS, GOCUOTAS_URL, PAYWAY_QR_URL, PAYMENT_METHODS } from '../../lib/paymentConfig.js';
+import { generateExternalReference } from '../../lib/paymentUtils.js';
+import { formatCurrency } from '../../lib/paymentConfig.js';
+import { PAYMENT_METHODS, getPaymentMethodConfig } from '../../lib/paymentMethodsConfig.js';
+import TransferenciaFlow from './TransferenciaFlow.jsx';
+import PaywayFlow from './PaywayFlow.jsx';
+import { useAuthContext } from '../../context/AuthContext.jsx';
+import LoginModal from '../auth/LoginModal.jsx';
 import styles from './PaymentModal.module.css';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Modal de compra con selección de método de pago.
+ * Modal genérico de compra — presenta al usuario los métodos de pago
+ * habilitados para el producto y arranca el flujo correspondiente
+ * según la elección.
  *
- * Métodos soportados:
- *   - Mercado Pago (automático, solo cápsulas).
- *   - Transferencia bancaria (manual, solo cursos).
- *   - Go Cuotas (manual, solo cursos).
- *   - Payway (manual, solo cursos, QR estático).
+ * Props:
+ *   open: boolean — controla visibilidad.
+ *   onClose: () => void — se llama al cerrar.
+ *   product: { slug, title, price, priceTransferencia, priceGocuotas,
+ *              currency, modalidad, gocuotasUrl } — el producto activo.
  *
- * La regla "MP en cápsulas, resto en cursos" está en el .filter() del
- * .map de PAYMENT_METHODS más abajo. Backend refuerza la restricción.
- *
- * Precios por método (transferencia, go_cuotas): si el producto tiene
- * priceTransferencia o priceGocuotas, se usan; si no, el precio base.
- * Payway usa siempre el precio base por ahora (no tiene pricePayway).
+ * Estados internos:
+ *   step: 'select' → 'transferencia' | 'gocuotas' | 'payway' | 'mercadopago'
+ *   email: email del comprador (validado)
+ *   selectedMethod: id del método elegido
+ *   submitting: true durante init de MP
+ *   externalReference: se genera al arrancar cualquier flow para trackear
+ *   error: mensaje de error de red o backend
  */
-
-const STEP = {
-  SELECT: 'select',
-  REDIRECTING_MP: 'redirecting_mp',
-  CONFIRM_TRANSFERENCIA: 'confirm_transferencia',
-  CONFIRM_GOCUOTAS: 'confirm_gocuotas',
-  CONFIRM_PAYWAY: 'confirm_payway',
-  ERROR: 'error',
-};
-
-const formatARS = (amount) => {
-  const nf = new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-  return `$${nf.format(amount || 0)}`;
-};
-
-const resolvePrice = (product, methodId) => {
-  if (!product) return 0;
-  if (methodId === 'transferencia' && product.priceTransferencia) return product.priceTransferencia;
-  if (methodId === 'gocuotas' && product.priceGocuotas) return product.priceGocuotas;
-  return product.price;
-};
-
-function PaymentModal({ open, onClose, product, subtitle }) {
-  const [step, setStep] = useState(STEP.SELECT);
-  const [selectedMethod, setSelectedMethod] = useState(null);
+function PaymentModal({ open, onClose, product }) {
+  const [step, setStep] = useState('select');
   const [email, setEmail] = useState('');
   const [emailTouched, setEmailTouched] = useState(false);
-  const [error, setError] = useState('');
-  const [copyFeedback, setCopyFeedback] = useState('');
-  const closeRef = useRef(null);
+  const { user, profile } = useAuthContext();
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [externalReference, setExternalReference] = useState(null);
+  const [error, setError] = useState(null);
+  const closeButtonRef = useRef(null);
 
   const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
   const emailShowError = emailTouched && email.length > 0 && !emailValid;
+  const canSubmit = emailValid && selectedMethod && !submitting;
 
-  const effectivePrice = useMemo(() => {
-    if (!selectedMethod || !product) return product?.price || 0;
-    return resolvePrice(product, selectedMethod.id);
-  }, [selectedMethod, product]);
+  // Si el usuario está logueado, prellenar el email con el del profile.
+  // No se muestra el input de email en la UI cuando hay sesión.
+  useEffect(() => {
+    if (open && user && profile?.email) {
+      setEmail(profile.email);
+    }
+  }, [open, user, profile?.email]);
 
-  const gocuotasLink = product?.gocuotasUrl || GOCUOTAS_URL;
-
+  // Reset al cerrar
   useEffect(() => {
     if (!open) {
-      setStep(STEP.SELECT);
-      setSelectedMethod(null);
+      setStep('select');
       setEmail('');
       setEmailTouched(false);
-      setError('');
-      setCopyFeedback('');
+      setSelectedMethod(null);
+      setSubmitting(false);
+      setExternalReference(null);
+      setError(null);
     }
   }, [open]);
 
+  // Cerrar con Escape
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key === 'Escape' && step !== STEP.REDIRECTING_MP) onClose?.();
+      if (e.key === 'Escape' && !submitting) onClose?.();
     };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
@@ -88,409 +79,328 @@ function PaymentModal({ open, onClose, product, subtitle }) {
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose, step]);
+  }, [open, onClose, submitting]);
 
+  // Focus al abrir
   useEffect(() => {
     if (open) {
-      const timer = setTimeout(() => closeRef.current?.focus(), 0);
+      const timer = setTimeout(() => closeButtonRef.current?.focus(), 0);
       return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // Si es cápsula, pre-seleccionar MP automáticamente (único método permitido).
-  useEffect(() => {
-    if (open && product?.modalidad === 'capsula' && !selectedMethod) {
-      const mp = PAYMENT_METHODS.find((m) => m.id === 'mercadopago');
-      if (mp) setSelectedMethod(mp);
+  const handleSelectMethod = (methodId) => {
+    setSelectedMethod(methodId);
+    setError(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    // Generar external reference único para trackear el pago
+    const ref = generateExternalReference();
+    setExternalReference(ref);
+
+    // Elegir siguiente step según método
+    if (selectedMethod === 'mercadopago') {
+      handleMercadoPago(ref);
+    } else if (selectedMethod === 'transferencia') {
+      setStep('transferencia');
+    } else if (selectedMethod === 'gocuotas') {
+      handleGoCuotas(ref);
+    } else if (selectedMethod === 'payway') {
+      setStep('payway');
     }
-  }, [open, product, selectedMethod]);
+  };
 
-  if (!open) return null;
-  if (!product) return null;
-
-  const handlePay = async () => {
-    if (!emailValid || !selectedMethod) {
-      setEmailTouched(true);
-      return;
-    }
-
-    const trimmedEmail = email.trim();
-
-    if (selectedMethod.handler === 'automatic') {
-      setStep(STEP.REDIRECTING_MP);
-      setError('');
-      try {
-        const res = await fetch('/.netlify/functions/create-preference', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cursoSlug: product.slug, buyerEmail: trimmedEmail }),
-        });
-        const body = await res.json();
-        if (!res.ok || !body.initPoint) {
-          throw new Error(body.error || 'No pudimos iniciar el pago');
-        }
-        window.location.href = body.initPoint;
-      } catch (err) {
-        setError(err.message || 'Hubo un problema al iniciar el pago');
-        setStep(STEP.ERROR);
-      }
-      return;
-    }
-
-    // Flujos manuales (transferencia, gocuotas, payway)
-    setError('');
+  /**
+   * MercadoPago — llama al backend para crear preferencia y redirige
+   * al init_point o al mock según env.
+   */
+  const handleMercadoPago = async (ref) => {
+    setSubmitting(true);
+    setError(null);
     try {
+      const res = await fetch('/.netlify/functions/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cursoSlug: product.slug,
+          buyerEmail: email.trim(),
+          externalReference: ref,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
+
+      // Redirect al checkout (real o mock)
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      console.error('[PaymentModal] MP error:', err);
+      setError(
+        err.message ||
+          'No pudimos iniciar el pago. Refrescá y probá de nuevo, o escribinos si el problema persiste.'
+      );
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Go Cuotas — abre el link específico del producto en una pestaña nueva.
+   * El usuario paga en Go Cuotas, y después Innova aprueba manualmente
+   * el pago desde el panel admin.
+   */
+  const handleGoCuotas = async (ref) => {
+    if (!product.gocuotasUrl) {
+      setError('No hay link de Go Cuotas configurado para este curso. Escribinos por favor.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      // Registrar el pago pending en nuestro sistema
       const res = await fetch('/.netlify/functions/create-manual-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cursoSlug: product.slug,
-          buyerEmail: trimmedEmail,
-          paymentMethod: selectedMethod.id,
+          buyerEmail: email.trim(),
+          externalReference: ref,
+          provider: 'gocuotas',
         }),
       });
-      const body = await res.json();
-      if (!res.ok) {
-        throw new Error(body.error || 'No pudimos registrar el pago');
-      }
-      if (selectedMethod.id === 'transferencia') {
-        setStep(STEP.CONFIRM_TRANSFERENCIA);
-      } else if (selectedMethod.id === 'gocuotas') {
-        setStep(STEP.CONFIRM_GOCUOTAS);
-      } else if (selectedMethod.id === 'payway') {
-        setStep(STEP.CONFIRM_PAYWAY);
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar el pago');
+
+      // Abrir Go Cuotas en pestaña nueva
+      window.open(product.gocuotasUrl, '_blank', 'noopener,noreferrer');
+
+      // Cerrar el modal
+      onClose?.();
     } catch (err) {
-      setError(err.message || 'Hubo un problema al registrar el pago');
-      setStep(STEP.ERROR);
+      console.error('[PaymentModal] Go Cuotas error:', err);
+      setError(
+        err.message ||
+          'No pudimos registrar tu pago. Refrescá y probá de nuevo, o escribinos si el problema persiste.'
+      );
+      setSubmitting(false);
     }
   };
 
-  const handleCopy = async (text, label) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyFeedback(`${label} copiado`);
-      setTimeout(() => setCopyFeedback(''), 2000);
-    } catch {
-      setCopyFeedback('No se pudo copiar');
-      setTimeout(() => setCopyFeedback(''), 2000);
+  if (!open) return null;
+
+  // Filtrar métodos disponibles según modalidad del producto
+  const availableMethods = PAYMENT_METHODS.filter((method) => {
+    // Cápsulas: solo MercadoPago (ticket bajo, aprobación automática).
+    if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
+      return false;
     }
-  };
+    // Hotfix: Payway deshabilitado temporalmente porque el QR
+    // de producción está fallando. MP vuelve a estar disponible
+    // en cursos como fallback. Revertir cuando Innova regenere
+    // el QR de Payway.
+    if (product.modalidad === 'curso' && method.id === 'payway') {
+      return false;
+    }
+    return true;
+  });
 
-  const canClose = step !== STEP.REDIRECTING_MP;
+  // Renderizar flow específico si estamos en un step no-select
+  if (step === 'transferencia') {
+    return (
+      <TransferenciaFlow
+        product={product}
+        buyerEmail={email.trim()}
+        externalReference={externalReference}
+        onClose={onClose}
+      />
+    );
+  }
 
+  if (step === 'payway') {
+    return (
+      <PaywayFlow
+        product={product}
+        buyerEmail={email.trim()}
+        externalReference={externalReference}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // Step 'select' — pantalla principal
   return (
+    <>
     <div
       className={styles.backdrop}
       role="dialog"
       aria-modal="true"
       aria-labelledby="payment-modal-title"
-      onClick={canClose ? onClose : undefined}
+      onClick={submitting ? undefined : onClose}
     >
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
-          <div className={styles.headerText}>
-            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          <div>
+            <p className={styles.eyebrow}>Comprar acceso</p>
             <h2 id="payment-modal-title" className={styles.title}>
               {product.title}
             </h2>
-            <p className={styles.price}>
-              {formatARS(product.price)} <span className={styles.priceCurrency}>{product.currency || 'ARS'}</span>
-            </p>
           </div>
-          {canClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              ref={closeRef}
-              className={styles.closeBtn}
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onClose}
+            ref={closeButtonRef}
+            disabled={submitting}
+            className={styles.closeBtn}
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
         </header>
 
-        {/* PASO 1: Selección de método + email */}
-        {step === STEP.SELECT && (
-          <>
-            <div className={styles.body}>
-              <label htmlFor="payment-email" className={styles.emailLabel}>
-                Tu email <span className={styles.required} aria-hidden="true">*</span>
+        {/* Formulario */}
+        <div className={styles.body}>
+          {/* Banner para usuarios no logueados */}
+          {!user && (
+            <div className={styles.loginBanner}>
+              <p className={styles.loginBannerText}>
+                ¿Ya tenés cuenta en INNOVA?{' '}
+                <button
+                  type="button"
+                  onClick={() => setLoginModalOpen(true)}
+                  className={styles.loginBannerLink}
+                >
+                  Iniciá sesión
+                </button>
+                {' '}o{' '}
+                <a
+                  href="/registro"
+                  className={styles.loginBannerLink}
+                >
+                  Registrate
+                </a>
+                {' '}para que puedas administrar tus cursos desde tu perfil.
+              </p>
+            </div>
+          )}
+
+          {/* Si está logueado, mostrar email del profile como confirmación */}
+          {user && email && (
+            <div className={styles.loggedInInfo}>
+              <p className={styles.loggedInText}>
+                Comprando como: <strong>{email}</strong>
+              </p>
+            </div>
+          )}
+
+          {/* Input de email — solo visible si NO hay sesión */}
+          {!user && (
+            <>
+              <label htmlFor="buyer-email" className={styles.label}>
+                Tu email
               </label>
               <input
-                id="payment-email"
+                id="buyer-email"
                 type="email"
                 inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setEmailTouched(true)}
-                aria-invalid={emailShowError}
-                aria-describedby={emailShowError ? 'email-hint' : 'email-help'}
-                className={
-                  emailShowError
-                    ? `${styles.emailInput} ${styles.emailInputError}`
-                    : styles.emailInput
-                }
-                placeholder="tu@email.com"
+                className={emailShowError ? `${styles.input} ${styles.inputError}` : styles.input}
+                placeholder="tucorreo@ejemplo.com"
+                autoComplete="email"
+                disabled={submitting || !!error}
                 required
               />
-              {emailShowError ? (
-                <p id="email-hint" className={styles.emailError}>
-                  Ingresá un email válido para recibir el acceso.
-                </p>
-              ) : (
-                <p id="email-help" className={styles.emailHelp}>
-                  Te vamos a enviar el acceso a este mail.
-                </p>
+              {emailShowError && (
+                <p className={styles.hint}>Ingresá un email válido.</p>
               )}
+              <p className={styles.hint}>Te enviaremos el acceso al curso a este email.</p>
+            </>
+          )}
 
-              <p className={styles.methodsLabel}>Elegí cómo querés pagar</p>
-              <div className={styles.methodsList} role="radiogroup" aria-label="Método de pago">
-                {PAYMENT_METHODS
-                  .filter((method) => {
-                    // Cápsulas: solo MercadoPago (ticket bajo, aprobación automática).
-                    if (product.modalidad === 'capsula' && method.id !== 'mercadopago') {
-                      return false;
-                    }
-                    // Hotfix: Payway deshabilitado temporalmente porque el QR
-                    // de producción está fallando. MP vuelve a estar disponible
-                    // en cursos como fallback. Revertir cuando Innova regenere
-                    // el QR de Payway.
-                    if (product.modalidad === 'curso' && method.id === 'payway') {
-                      return false;
-                    }
-                    return true;
-                  })
-                  .map((method) => {
-                    const selected = selectedMethod?.id === method.id;
-                    const methodPrice = resolvePrice(product, method.id);
-                    const isDiscounted = methodPrice < product.price;
-
-                    return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => setSelectedMethod(method)}
-                        className={`${styles.methodCard} ${
-                          selected ? styles.methodCardSelected : ''
-                        }`}
-                      >
-                        <span className={styles.methodMark} aria-hidden="true" />
-                        <span className={styles.methodText}>
-                          <span className={styles.methodTopRow}>
-                            <span className={styles.methodLabel}>{method.label}</span>
-                            <span className={styles.methodPriceGroup}>
-                              <span className={styles.methodPrice}>{formatARS(methodPrice)}</span>
-                              {isDiscounted && (
-                                <span className={styles.methodDiscountBadge}>OFERTA</span>
-                              )}
-                            </span>
-                          </span>
-                          <span className={styles.methodDescription}>{method.description}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={handlePay}
-                disabled={!emailValid || !selectedMethod}
-              >
-                {selectedMethod?.handler === 'automatic'
-                  ? `Pagar ${formatARS(effectivePrice)} con Mercado Pago`
-                  : selectedMethod
-                  ? `Continuar con ${formatARS(effectivePrice)}`
-                  : 'Elegí un método'}
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* PASO 2A: Redirigiendo a MP */}
-        {step === STEP.REDIRECTING_MP && (
-          <div className={styles.body}>
-            <div className={styles.stateBox}>
-              <div className={styles.spinner} aria-hidden="true" />
-              <p className={styles.stateText}>Iniciando pago con Mercado Pago...</p>
-              <p className={styles.stateHelp}>En un momento vas a ser redirigido.</p>
-            </div>
-          </div>
-        )}
-
-        {/* PASO 2B: Confirmación de Transferencia */}
-        {step === STEP.CONFIRM_TRANSFERENCIA && (
-          <>
-            <div className={styles.body}>
-              <h3 className={styles.confirmTitle}>Datos para transferir</h3>
-              <p className={styles.confirmIntro}>
-                Realizá la transferencia por <strong>{formatARS(effectivePrice)}</strong> a los siguientes datos:
-              </p>
-
-              <dl className={styles.bankDetails}>
-                <div className={styles.bankRow}>
-                  <dt>Titular</dt>
-                  <dd>{BANK_DETAILS.titular}</dd>
-                </div>
-                <div className={styles.bankRow}>
-                  <dt>CBU</dt>
-                  <dd>
-                    <code>{BANK_DETAILS.cbu}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(BANK_DETAILS.cbu, 'CBU')}
-                      className={styles.copyBtn}
-                      aria-label="Copiar CBU"
-                    >
-                      Copiar
-                    </button>
-                  </dd>
-                </div>
-                <div className={styles.bankRow}>
-                  <dt>Alias</dt>
-                  <dd>
-                    <code>{BANK_DETAILS.alias}</code>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(BANK_DETAILS.alias, 'Alias')}
-                      className={styles.copyBtn}
-                      aria-label="Copiar alias"
-                    >
-                      Copiar
-                    </button>
-                  </dd>
-                </div>
-                <div className={styles.bankRow}>
-                  <dt>Cuenta</dt>
-                  <dd>{BANK_DETAILS.tipoCuenta} · Nº {BANK_DETAILS.cuenta} · Sucursal {BANK_DETAILS.sucursal}</dd>
-                </div>
-              </dl>
-
-              {copyFeedback && (
-                <p className={styles.copyFeedback} role="status">{copyFeedback}</p>
-              )}
-
-              <div className={styles.confirmMessage}>
-                <p>
-                  Cuando confirmemos la transferencia, te enviamos el link de acceso al mail{' '}
-                  <strong>{email}</strong>.
-                </p>
-                <p className={styles.confirmSmall}>
-                  Este proceso puede tardar 24-48 hs hábiles.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <Button variant="primary" size="lg" onClick={onClose}>
-                Entendido, cerrar
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* PASO 2C: Confirmación de Go Cuotas */}
-        {step === STEP.CONFIRM_GOCUOTAS && (
-          <>
-            <div className={styles.body}>
-              <h3 className={styles.confirmTitle}>Completá el pago en Go Cuotas</h3>
-              <p className={styles.confirmIntro}>
-                Vas a ser redirigido al sitio de Go Cuotas para completar el pago por{' '}
-                <strong>{formatARS(effectivePrice)}</strong>.
-              </p>
-
-              <div className={styles.gocuotasCta}>
-                <a
-                  href={gocuotasLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.gocuotasLink}
+          {/* Selección de método */}
+          <p className={styles.sectionTitle}>Elegí cómo pagar</p>
+          <div className={styles.methodsGrid}>
+            {availableMethods.map((method) => {
+              const isSelected = selectedMethod === method.id;
+              const price = getPriceForMethod(product, method.id);
+              return (
+                <button
+                  key={method.id}
+                  type="button"
+                  onClick={() => handleSelectMethod(method.id)}
+                  disabled={submitting}
+                  className={`${styles.methodCard} ${isSelected ? styles.methodCardSelected : ''}`}
                 >
-                  Ir a Go Cuotas →
-                </a>
-              </div>
+                  <div className={styles.methodHeader}>
+                    <span className={styles.methodName}>{method.label}</span>
+                    <span className={styles.methodPrice}>
+                      {formatCurrency(price, product.currency)}
+                    </span>
+                  </div>
+                  <p className={styles.methodDescription}>{method.description}</p>
+                </button>
+              );
+            })}
+          </div>
 
-              <div className={styles.confirmMessage}>
-                <p>
-                  Cuando confirmemos el pago desde Go Cuotas, te enviamos el link de acceso al mail{' '}
-                  <strong>{email}</strong>.
-                </p>
-                <p className={styles.confirmSmall}>
-                  Este proceso puede tardar unos minutos hasta unas horas.
-                </p>
-              </div>
-            </div>
+          {/* Botón de submit */}
+          <form onSubmit={handleSubmit}>
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className={styles.submitBtn}
+            >
+              {submitting
+                ? 'Iniciando...'
+                : selectedMethod
+                  ? `Continuar con ${formatCurrency(getPriceForMethod(product, selectedMethod), product.currency)}`
+                  : 'Elegí un método de pago'}
+            </button>
+          </form>
 
-            <div className={styles.actions}>
-              <Button variant="secondary" size="lg" onClick={onClose}>
-                Entendido, cerrar
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* PASO 2D: Confirmación de Payway */}
-        {step === STEP.CONFIRM_PAYWAY && (
-          <>
-            <div className={styles.body}>
-              <h3 className={styles.confirmTitle}>Escaneá el QR para pagar</h3>
-              <p className={styles.confirmIntro}>
-                Abrí tu billetera favorita (Modo, Mercado Pago, Cuenta DNI o NaranjaX) y escaneá el QR para completar el pago por <strong>{formatARS(effectivePrice)}</strong>.
-              </p>
-
-              <div className={styles.paywayQrWrap}>
-                <img
-                  src={PAYWAY_QR_URL}
-                  alt="Código QR de Payway para pagar"
-                  className={styles.paywayQrImage}
-                />
-              </div>
-
-              <div className={styles.confirmMessage}>
-                <p>
-                  Cuando confirmemos el pago, te enviamos el link de acceso al mail{' '}
-                  <strong>{email}</strong>.
-                </p>
-                <p className={styles.confirmSmall}>
-                  Este proceso puede tardar unos minutos hasta unas horas.
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <Button variant="secondary" size="lg" onClick={onClose}>
-                Entendido, cerrar
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* PASO ERROR */}
-        {step === STEP.ERROR && (
-          <>
-            <div className={styles.body}>
-              <div className={styles.stateBox}>
-                <p className={styles.stateText}>Algo salió mal</p>
-                <p className={styles.stateHelp}>{error || 'Intentá de nuevo en unos segundos.'}</p>
-              </div>
-            </div>
-            <div className={styles.actions}>
-              <Button variant="secondary" size="lg" onClick={() => setStep(STEP.SELECT)}>
-                Volver a intentar
-              </Button>
-            </div>
-          </>
-        )}
+          {error && (
+            <p className={styles.error} role="alert">
+              {mapErrorToSpanish(error)}
+            </p>
+          )}
+        </div>
       </div>
     </div>
+
+    <LoginModal
+      open={loginModalOpen}
+      onClose={() => setLoginModalOpen(false)}
+    />
+    </>
   );
+}
+
+/**
+ * Devuelve el precio a mostrar según el método elegido.
+ * Fallback a `price` genérico si no hay precio específico configurado.
+ */
+function getPriceForMethod(product, methodId) {
+  if (methodId === 'transferencia' && product.priceTransferencia != null) {
+    return product.priceTransferencia;
+  }
+  if (methodId === 'gocuotas' && product.priceGocuotas != null) {
+    return product.priceGocuotas;
+  }
+  return product.price;
+}
+
+function mapErrorToSpanish(msg) {
+  const s = String(msg).toLowerCase();
+  if (s.includes('valid buyeremail')) return 'Ingresá un email válido.';
+  if (s.includes('cursoslug es requerido')) return 'Falta el identificador del producto.';
+  if (s.includes('producto no encontrado')) return 'Este producto no está disponible por ahora.';
+  if (s.includes('mp not configured')) return 'El pago no está configurado. Contactanos por favor.';
+  if (s.includes('rate limit')) return 'Muchos intentos. Esperá un momento y probá de nuevo.';
+  return String(msg);
 }
 
 export default PaymentModal;

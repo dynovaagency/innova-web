@@ -535,3 +535,55 @@
   border-radius: var(--radius-sm);
   display: block;
 }
+
+.loginBanner {
+  background-color: var(--color-secondary-soft);
+  border-left: 3px solid var(--color-secondary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.loginBannerText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.loginBannerLink {
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.loginBannerLink:hover {
+  color: var(--color-primary-hover);
+}
+
+.loggedInInfo {
+  background-color: var(--color-background);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  border: 1px solid var(--color-border);
+}
+
+.loggedInText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: var(--line-height-relaxed);
+}
+
+.loggedInText strong {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
