@@ -21,6 +21,9 @@ import Registro from './pages/Registro.jsx';
 import RegistroExitoso from './pages/RegistroExitoso.jsx';
 import EmailConfirmado from './pages/EmailConfirmado.jsx';
 import Terminos from './pages/Terminos.jsx';
+import RecuperarContrasena from './pages/RecuperarContrasena.jsx';
+import ResetearContrasena from './pages/ResetearContrasena.jsx';
+import ContrasenaActualizada from './pages/ContrasenaActualizada.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
@@ -61,6 +64,9 @@ function App() {
         <Route path="/registro-exitoso" element={<RegistroExitoso />} />
         <Route path="/email-confirmado" element={<EmailConfirmado />} />
         <Route path="/terminos" element={<Terminos />} />
+        <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+        <Route path="/resetear-contrasena" element={<ResetearContrasena />} />
+        <Route path="/contrasena-actualizada" element={<ContrasenaActualizada />} />
       </Route>
 
       {/* Rutas de autenticación admin (sin layout público, sin layout admin) */}
