@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import styles from './LoginModal.module.css';
@@ -23,6 +23,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 function LoginModal({ open, onClose }) {
   const { signIn } = useAuthContext();
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,7 +75,7 @@ function LoginModal({ open, onClose }) {
 
   if (!open) return null;
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
 
@@ -83,9 +84,26 @@ function LoginModal({ open, onClose }) {
     try {
       await signIn(email, password);
       onClose?.();
+
+      // Después del login, verificamos el rol para redirigir.
+      // No podemos usar profile del contexto acá porque acaba de cambiar
+      // y todavía no se propagó. Lo buscamos directamente en la DB.
+      const { supabase } = await import('../../lib/supabase.js');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('usuarios')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (profileData?.role === 'admin' || profileData?.role === 'superadmin') {
+          navigate('/admin');
+        }
+        // Si es user común, se queda donde estaba (no navegamos).
+      }
     } catch (err) {
       console.error('[LoginModal] error:', err);
-      // Traducimos errores de Supabase a mensajes en español
       const message = mapErrorToSpanish(err.message);
       setError(message);
       setLoading(false);

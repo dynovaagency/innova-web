@@ -73,7 +73,13 @@ function Navbar() {
 
   const handleGoToProfile = () => {
     setUserMenuOpen(false);
-    navigate('/mi-cuenta');
+    // Los admins y superadmins van al panel de administración.
+    // Los usuarios comunes van a su panel de alumno.
+    if (profile?.role === 'admin' || profile?.role === 'superadmin') {
+      navigate('/admin');
+    } else {
+      navigate('/mi-cuenta');
+    }
   };
 
   const handleSignOut = async () => {
@@ -153,7 +159,7 @@ function Navbar() {
                     aria-expanded={userMenuOpen}
                   >
                     <UserCircle size={18} aria-hidden="true" />
-                    Tu Perfil
+                    {(profile?.role === 'admin' || profile?.role === 'superadmin') ? 'Mi cuenta' : 'Tu Perfil'}
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
@@ -177,7 +183,7 @@ function Navbar() {
                         role="menuitem"
                       >
                         <UserCircle size={16} aria-hidden="true" />
-                        Ir a mi cuenta
+                        {(profile?.role === 'admin' || profile?.role === 'superadmin') ? 'Ir al panel admin' : 'Ir a mi cuenta'}
                       </button>
                       <button
                         type="button"
