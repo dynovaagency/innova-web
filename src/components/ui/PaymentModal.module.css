@@ -534,3 +534,23 @@
     flex-direction: column;
   }
 }
+
+.methodPriceGroup {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  white-space: nowrap;
+}
+
+.methodDiscountBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+}

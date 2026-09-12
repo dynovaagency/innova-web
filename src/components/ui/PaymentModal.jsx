@@ -26,20 +26,20 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PAYMENT_METHODS = [
   {
     id: 'mercadopago',
-    label: 'MercadoPago',
-    description: 'Tarjeta de débito o crédito. Pago único.',
-    applicableFor: ['capsula'],
+    label: 'Mercado Pago',
+    description: 'Tarjetas, transferencia o efectivo',
+    applicableFor: ['capsula', 'curso'],
   },
   {
     id: 'transferencia',
     label: 'Transferencia bancaria',
-    description: 'Datos bancarios de Innova. El acceso se activa cuando confirmemos el ingreso.',
+    description: 'Directo a la cuenta de Innova',
     applicableFor: ['curso'],
   },
   {
     id: 'gocuotas',
     label: 'Go Cuotas',
-    description: 'Pagá en cuotas sin tarjeta. Te redirigimos al checkout de Go Cuotas.',
+    description: 'Financiación en cuotas sin tarjeta',
     applicableFor: ['curso'],
   },
 ];
@@ -360,8 +360,13 @@ function PaymentModal({ open, onClose, product }) {
                         <span className={styles.methodLabel}>{method.label}</span>
                         <span className={styles.methodDescription}>{method.description}</span>
                       </span>
-                      <span className={styles.methodPrice}>
-                        {formatCurrency(methodPrice, product.currency)}
+                      <span className={styles.methodPriceGroup}>
+                        <span className={styles.methodPrice}>
+                          {formatCurrency(methodPrice, product.currency)}
+                        </span>
+                        {methodPrice < product.price && (
+                          <span className={styles.methodDiscountBadge}>OFERTA</span>
+                        )}
                       </span>
                     </button>
                   );
