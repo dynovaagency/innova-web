@@ -355,13 +355,14 @@ function PaymentModal({ open, onClose, product }) {
                       className={isSelected ? `${styles.methodCard} ${styles.methodCardSelected}` : styles.methodCard}
                       disabled={submitting}
                     >
-                      <div className={styles.methodHeader}>
+                      <span className={styles.methodRadio} aria-hidden="true" />
+                      <span className={styles.methodText}>
                         <span className={styles.methodLabel}>{method.label}</span>
-                        <span className={styles.methodPrice}>
-                          {formatCurrency(methodPrice, product.currency)}
-                        </span>
-                      </div>
-                      <p className={styles.methodDescription}>{method.description}</p>
+                        <span className={styles.methodDescription}>{method.description}</span>
+                      </span>
+                      <span className={styles.methodPrice}>
+                        {formatCurrency(methodPrice, product.currency)}
+                      </span>
                     </button>
                   );
                 })}
