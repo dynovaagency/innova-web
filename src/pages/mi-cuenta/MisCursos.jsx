@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { BookOpen, ExternalLink, Video, Calendar, Search } from 'lucide-react';
+import { BookOpen, ExternalLink, Video, Calendar, Search, FileText, Loader } from 'lucide-react';
+import { supabase } from '../../lib/supabase.js';
 import styles from './MisCursos.module.css';
 
 const FILTERS = [
@@ -227,6 +228,9 @@ function CourseCard({ purchase, formatDate }) {
     createdAt,
   } = purchase;
 
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState(null);
+
   const modalidadLabel = modalidad === 'capsula' ? 'Cápsula' : 'Curso';
   const purchaseDate = formatDate(approvedAt || createdAt);
 
@@ -237,6 +241,50 @@ function CourseCard({ purchase, formatDate }) {
   const accessUrl = isExternal
     ? contentUrl
     : `/curso/${cursoSlug}?ref=${externalReference}`;
+
+  const handleDownloadReceipt = async () => {
+    setDownloadingReceipt(true);
+    setReceiptError(null);
+    try {
+      // Obtener el token de sesión de Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Sesión expirada. Refrescá la página y volvé a iniciar sesión.');
+      }
+
+      const res = await fetch('/.netlify/functions/download-receipt', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ externalReference }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${res.status}`);
+      }
+
+      // Convertir la respuesta en Blob y descargar
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `comprobante-${externalReference}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[CourseCard] error al descargar comprobante:', err);
+      setReceiptError(err.message || 'No pudimos generar el comprobante.');
+      // Auto-clear el error después de 5 segundos
+      setTimeout(() => setReceiptError(null), 5000);
+    } finally {
+      setDownloadingReceipt(false);
+    }
+  };
 
   return (
     <article className={styles.card}>
@@ -262,21 +310,44 @@ function CourseCard({ purchase, formatDate }) {
           </span>
         </div>
 
-        {isExternal ? (
-          <a
-            href={accessUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.cardBtn}
+        <div className={styles.cardActions}>
+          {isExternal ? (
+            <a
+              href={accessUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.cardBtn}
+            >
+              <ExternalLink size={16} aria-hidden="true" />
+              Ir al contenido
+            </a>
+          ) : (
+            <Link to={accessUrl} className={styles.cardBtn}>
+              <Video size={16} aria-hidden="true" />
+              Ver contenido
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={handleDownloadReceipt}
+            disabled={downloadingReceipt}
+            className={styles.cardBtnSecondary}
+            aria-label="Descargar comprobante de compra"
           >
-            <ExternalLink size={16} aria-hidden="true" />
-            Ir al contenido
-          </a>
-        ) : (
-          <Link to={accessUrl} className={styles.cardBtn}>
-            <Video size={16} aria-hidden="true" />
-            Ver contenido
-          </Link>
+            {downloadingReceipt ? (
+              <Loader size={16} className={styles.spinIcon} aria-hidden="true" />
+            ) : (
+              <FileText size={16} aria-hidden="true" />
+            )}
+            {downloadingReceipt ? 'Generando...' : 'Descargar comprobante'}
+          </button>
+        </div>
+
+        {receiptError && (
+          <p className={styles.cardError} role="alert">
+            {receiptError}
+          </p>
         )}
       </div>
     </article>

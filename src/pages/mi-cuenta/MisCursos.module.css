@@ -392,3 +392,61 @@
 .clearBtn:hover {
   background-color: var(--color-secondary-hover);
 }
+
+/* Acciones de la card (botones) */
+.cardActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-top: auto;
+}
+
+/* Botón secundario (descargar comprobante) */
+.cardBtnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.cardBtnSecondary:hover:not(:disabled) {
+  background-color: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+
+.cardBtnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Icono girando (para el spinner) */
+.spinIcon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mensaje de error en la card */
+.cardError {
+  margin: var(--space-xs) 0 0;
+  padding: var(--space-2xs) var(--space-sm);
+  background-color: rgba(240, 72, 71, 0.08);
+  border-left: 3px solid var(--color-accent);
+  color: var(--color-accent);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+  line-height: var(--line-height-relaxed);
+}
