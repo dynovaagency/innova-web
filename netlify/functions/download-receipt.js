@@ -61,7 +61,7 @@ export const handler = async (event) => {
 
   try {
     // Buscar el pago
-    const payment = await paymentsRepo.findByExternalReference(externalReference);
+      const payment = await paymentsRepo.findByReference(externalReference);
     if (!payment) {
       return error(404, 'Pago no encontrado');
     }
