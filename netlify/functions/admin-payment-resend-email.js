@@ -22,6 +22,7 @@ import { requireAdmin } from './_lib/auth/middleware.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import { sendAccessEmail } from './_lib/email.js';
 import { resolveProductTitle } from './_lib/products/title-resolver.js';
+import { buildReceiptAttachment } from './_lib/receiptForEmail.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -59,12 +60,18 @@ export const handler = async (event) => {
     // Resolver el título (snapshot > catálogo > slug)
     const cursoTitle = await resolveProductTitle(payment);
 
+    // Generar comprobante PDF para adjuntar al email.
+    // El pago ya está aprobado, así que payment tiene todo lo necesario
+    // para el PDF (approvedAt, status, etc).
+    const pdfAttachment = await buildReceiptAttachment(payment);
+
     // Enviar el email
     const result = await sendAccessEmail({
       to: payment.buyerEmail,
       cursoTitle,
       cursoSlug: payment.cursoSlug,
       externalReference: payment.externalReference,
+      pdfAttachment,
     });
 
     if (!result.sent) {

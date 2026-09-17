@@ -13,6 +13,7 @@ import { getProvider } from './_lib/providers/payment/index.js';
 import { PAYMENT_STATUS } from './_lib/providers/payment/interface.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import { resolveProductTitle } from './_lib/products/title-resolver.js';
+import { buildReceiptAttachment } from './_lib/receiptForEmail.js';
 
 const persistedStatusFor = (providerStatus) => {
   if (providerStatus === PAYMENT_STATUS.APPROVED) return 'approved';
@@ -82,11 +83,25 @@ export const handler = async (event) => {
       existing.status !== 'approved'
     ) {
       const cursoTitle = await resolveProductTitle(existing);
+
+      // Generar comprobante PDF para adjuntar al email.
+      // Refrescamos el payment con el status ya aprobado para que el PDF
+      // muestre estado "APROBADO" y approvedAt correcto, sin necesidad
+      // de un segundo read a la DB.
+      const paymentForReceipt = {
+        ...existing,
+        status: 'approved',
+        approvedAt: metadata?.approvedAt || new Date().toISOString(),
+        mpPaymentId: metadata?.mpPaymentId || null,
+      };
+      const pdfAttachment = await buildReceiptAttachment(paymentForReceipt);
+
       const result = await sendAccessEmail({
         to: existing.buyerEmail,
         cursoTitle,
         cursoSlug: existing.cursoSlug,
         externalReference,
+        pdfAttachment,
       });
 
       if (result.sent) {

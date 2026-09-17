@@ -41,7 +41,13 @@ function getClient() {
 /**
  * Envía el mail de acceso al curso al comprador.
  */
-export async function sendAccessEmail({ to, cursoTitle, cursoSlug, externalReference }) {
+export async function sendAccessEmail({
+  to,
+  cursoTitle,
+  cursoSlug,
+  externalReference,
+  pdfAttachment = null,
+}) {
   const client = getClient();
   if (!client) return { sent: false, error: 'no_api_key' };
 
@@ -58,25 +64,42 @@ export async function sendAccessEmail({ to, cursoTitle, cursoSlug, externalRefer
   const recoveryUrl = `${SITE_URL}/recuperar-acceso`;
   const subject = `Tu acceso a la cápsula: ${cursoTitle}`;
 
-  const html = buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl });
-  const text = buildAccessText({ cursoTitle, accessUrl, recoveryUrl });
+  const html = buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl, hasAttachment: !!pdfAttachment });
+  const text = buildAccessText({ cursoTitle, accessUrl, recoveryUrl, hasAttachment: !!pdfAttachment });
+
+  const payload = {
+    from: FROM_ADDRESS,
+    to,
+    replyTo: REPLY_TO,
+    subject,
+    html,
+    text,
+  };
+
+  // Attachment del comprobante de compra (opcional).
+  // Resend acepta content como Buffer o base64 string.
+  if (pdfAttachment && pdfAttachment.content && pdfAttachment.filename) {
+    payload.attachments = [
+      {
+        filename: pdfAttachment.filename,
+        content: pdfAttachment.content,
+      },
+    ];
+  }
 
   try {
-    const { data, error } = await client.emails.send({
-      from: FROM_ADDRESS,
-      to,
-      replyTo: REPLY_TO,
-      subject,
-      html,
-      text,
-    });
+    const { data, error } = await client.emails.send(payload);
 
     if (error) {
       console.error('[email] Resend error (access):', error);
       return { sent: false, error: error.message || 'resend_error' };
     }
 
-    console.log('[email] Acceso enviado OK:', { to, id: data?.id });
+    console.log('[email] Acceso enviado OK:', {
+      to,
+      id: data?.id,
+      withAttachment: !!pdfAttachment,
+    });
     return { sent: true, id: data?.id };
   } catch (err) {
     console.error('[email] Excepción al enviar acceso:', err);
@@ -140,7 +163,7 @@ export async function sendMagicLink({ to, magicUrl, expiresAt, name }) {
 
 // --- Templates: acceso -----------------------------------------------
 
-function buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl }) {
+function buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl, hasAttachment }) {
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -185,7 +208,13 @@ function buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl }) {
               <p style="margin:0 0 24px; font-size:12px; line-height:1.5; color:#0f2f56; word-break:break-all;">
                 <a href="${accessUrl}" style="color:#0f2f56;">${accessUrl}</a>
               </p>
-              <hr style="border:none; border-top:1px solid #e5e7eb; margin: 24px 0;" />
+                            <hr style="border:none; border-top:1px solid #e5e7eb; margin: 24px 0;" />
+              ${hasAttachment ? `
+              <p style="margin:0 0 16px; font-size:13px; line-height:1.6; color:#666666;">
+                <strong>📎 Comprobante de compra</strong><br />
+                Adjuntamos el comprobante en PDF a este mail. Guardalo por si lo necesitás más adelante.
+              </p>
+              ` : ''}
               <p style="margin:0 0 8px; font-size:13px; line-height:1.6; color:#666666;">
                 <strong>¿Perdiste este mail?</strong> Podés recuperar el link ingresando el mismo email con el que compraste en:
               </p>
@@ -211,7 +240,11 @@ function buildAccessHtml({ cursoTitle, accessUrl, recoveryUrl }) {
 </html>`;
 }
 
-function buildAccessText({ cursoTitle, accessUrl, recoveryUrl }) {
+function buildAccessText({ cursoTitle, accessUrl, recoveryUrl, hasAttachment }) {
+  const attachmentLine = hasAttachment
+    ? '\nAdjuntamos el comprobante de compra en PDF a este mail. Guardalo por si lo necesitás más adelante.\n'
+    : '';
+
   return `¡Gracias por tu compra!
 
 Confirmamos tu pago para la cápsula:
@@ -221,7 +254,7 @@ Accedé al contenido desde este link:
 ${accessUrl}
 
 Guardá este email para volver a acceder cuando quieras.
-
+${attachmentLine}
 ¿Perdiste este mail? Podés recuperar el link ingresando el mismo email con el que compraste en:
 ${recoveryUrl}
 
