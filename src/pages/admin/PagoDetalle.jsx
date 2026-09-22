@@ -10,6 +10,7 @@ import Toast from '../../components/admin/Toast.jsx';
 import useToast from '../../hooks/useToast.js';
 import useAdminSession from '../../hooks/useAdminSession.js';
 import { formatCurrency, formatDateTime } from '../../lib/format.js';
+import CertificateSection from './CertificateSection.jsx';
 import styles from './PagoDetalle.module.css';
 
 /**
@@ -20,6 +21,7 @@ import styles from './PagoDetalle.module.css';
  *   - Referencias técnicas (externalReference, provider, providerReference).
  *   - Historial de emails (envío automático + reenvíos manuales).
  *   - Provider metadata (para debug avanzado).
+ *   - Certificado del alumno (subir / reemplazar / descargar).
  *   - Acción "Reenviar mail" (solo si status === approved).
  */
 
@@ -102,31 +104,6 @@ function PagoDetalle() {
       toast.error('No se pudo reenviar', err.message);
       setConfirmResend((prev) => ({ ...prev, loading: false }));
     }
-    setConfirmApprove((prev) => ({ ...prev, loading: true }));
-    try {
-      const res = await fetch('/.netlify/functions/admin-payment-mark-approved', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ ref: externalReference }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body.error || 'No se pudo aprobar el pago');
-      }
-      toast.success(
-        'Pago aprobado',
-        body.emailSent
-          ? `Se envió el acceso a ${body.to}.`
-          : `Pago aprobado. El email no se pudo enviar automáticamente — reintentá con "Reenviar acceso".`
-      );
-      setConfirmApprove({ open: false, loading: false });
-      fetchPayment();
-    } catch (err) {
-      console.error('[PagoDetalle] approve error:', err);
-      toast.error('No se pudo aprobar', err.message);
-      setConfirmApprove((prev) => ({ ...prev, loading: false }));
-    }
   };
 
   const handleApproveConfirm = async () => {
@@ -157,7 +134,7 @@ function PagoDetalle() {
     }
   };
 
-    const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async () => {
     setConfirmDelete((prev) => ({ ...prev, loading: true }));
     try {
       const res = await fetch('/.netlify/functions/admin-payment-delete', {
@@ -170,10 +147,7 @@ function PagoDetalle() {
       if (!res.ok) {
         throw new Error(body.error || 'No se pudo eliminar el pago');
       }
-      toast.success(
-        'Pago eliminado',
-        'El registro se eliminó del sistema.'
-      );
+      toast.success('Pago eliminado', 'El registro se eliminó del sistema.');
       // Redirigimos al listado después de eliminar.
       setTimeout(() => navigate('/admin/pagos'), 1200);
     } catch (err) {
@@ -192,7 +166,7 @@ function PagoDetalle() {
     }
   };
 
-  if (loading) {
+  if (loading && !payment) {
     return (
       <>
         <Link to="/admin/pagos" className={styles.backLink}>
@@ -227,9 +201,7 @@ function PagoDetalle() {
   const canResend = payment.status === 'approved' && payment.buyerEmail;
   // Sprint 2.8: cualquier pago pending con email puede aprobarse manualmente.
   // Para MP es un fallback si el webhook no llegó todavía.
-  const canApprove =
-    payment.status === 'pending' &&
-    !!payment.buyerEmail;
+  const canApprove = payment.status === 'pending' && !!payment.buyerEmail;
   const canDelete = currentAdmin?.role === 'superadmin';
 
   return (
@@ -366,6 +338,18 @@ function PagoDetalle() {
                 </div>
               </li>
             )}
+            {payment.certificateUploadedAt && (
+              <li className={styles.timelineItem}>
+                <div className={`${styles.timelineDot} ${styles.timelineDot_success}`} aria-hidden="true" />
+                <div>
+                  <p className={styles.timelineLabel}>Certificado cargado</p>
+                  <p className={styles.timelineDate}>{formatDateTime(payment.certificateUploadedAt)}</p>
+                  {payment.certificateUploadedBy && (
+                    <p className={styles.timelineHint}>Por: {payment.certificateUploadedBy}</p>
+                  )}
+                </div>
+              </li>
+            )}
             <li className={styles.timelineItem}>
               <div className={styles.timelineDot} aria-hidden="true" />
               <div>
@@ -438,35 +422,35 @@ function PagoDetalle() {
 
         {/* Bloque 4: Link de acceso */}
         {accessUrl && (
-        <section className={styles.card}>
-          <h2 className={styles.sectionTitle}>Link de acceso</h2>
-          <p className={styles.hint}>
-            Este es el link que recibió el comprador. Podés copiarlo o abrirlo para verificarlo.
-          </p>
-          <div className={styles.accessUrl}>
-            <code className={styles.codeLong}>{accessUrl}</code>
-            <div className={styles.accessActions}>
-              <button
-                type="button"
-                onClick={() => handleCopy(accessUrl, 'Link de acceso')}
-                className={styles.iconAction}
-                aria-label="Copiar link"
-              >
-                <Copy size={14} aria-hidden="true" />
-                Copiar
-              </button>
-              <a
-                href={accessUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.iconAction}
-              >
-                <ExternalLink size={14} aria-hidden="true" />
-                Abrir
-              </a>
+          <section className={styles.card}>
+            <h2 className={styles.sectionTitle}>Link de acceso</h2>
+            <p className={styles.hint}>
+              Este es el link que recibió el comprador. Podés copiarlo o abrirlo para verificarlo.
+            </p>
+            <div className={styles.accessUrl}>
+              <code className={styles.codeLong}>{accessUrl}</code>
+              <div className={styles.accessActions}>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(accessUrl, 'Link de acceso')}
+                  className={styles.iconAction}
+                  aria-label="Copiar link"
+                >
+                  <Copy size={14} aria-hidden="true" />
+                  Copiar
+                </button>
+                <a
+                  href={accessUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.iconAction}
+                >
+                  <ExternalLink size={14} aria-hidden="true" />
+                  Abrir
+                </a>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         )}
 
         {/* Bloque 5: Metadata cruda (colapsable) */}
@@ -483,6 +467,9 @@ function PagoDetalle() {
           </section>
         )}
       </div>
+
+      {/* Bloque 6: Certificado (ancho completo, fuera del grid) */}
+      <CertificateSection payment={payment} onSuccess={fetchPayment} />
 
       <ConfirmDialog
         open={confirmResend.open}

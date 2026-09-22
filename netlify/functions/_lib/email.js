@@ -374,3 +374,160 @@ function formatExpiryMinutes(expiresAt) {
   const diffMinutes = Math.max(1, Math.round((expMs - nowMs) / 60000));
   return diffMinutes === 1 ? '1 minuto' : `${diffMinutes} minutos`;
 }
+
+
+
+// --- Email de certificado listo --------------------------------------
+
+/**
+ * Envía el mail al alumno cuando se sube o reemplaza su certificado.
+ *
+ * @param {object} args
+ * @param {string} args.to               Email del alumno.
+ * @param {string} args.cursoTitle       Título del curso/cápsula.
+ * @param {string|null} args.comment     Comentario opcional que dejó el admin.
+ * @param {object} args.pdfAttachment    { filename, content } del PDF del certificado.
+ * @param {boolean} args.isReplacement   true si es un reemplazo, false si es primera vez.
+ */
+export async function sendCertificateEmail({
+  to,
+  cursoTitle,
+  comment,
+  pdfAttachment,
+  isReplacement = false,
+}) {
+  const client = getClient();
+  if (!client) return { sent: false, error: 'no_api_key' };
+
+  if (!to || !cursoTitle || !pdfAttachment) {
+    console.warn('[email] Datos incompletos para enviar certificado:', {
+      to: !!to,
+      cursoTitle: !!cursoTitle,
+      hasAttachment: !!pdfAttachment,
+    });
+    return { sent: false, error: 'missing_data' };
+  }
+
+  const subject = isReplacement
+    ? `Certificado actualizado: ${cursoTitle}`
+    : `¡Tu certificado está listo! — ${cursoTitle}`;
+
+  const html = buildCertificateHtml({ cursoTitle, comment, isReplacement });
+  const text = buildCertificateText({ cursoTitle, comment, isReplacement });
+
+  const payload = {
+    from: FROM_ADDRESS,
+    to,
+    replyTo: REPLY_TO,
+    subject,
+    html,
+    text,
+    attachments: [
+      {
+        filename: pdfAttachment.filename,
+        content: pdfAttachment.content,
+      },
+    ],
+  };
+
+  try {
+    const { data, error } = await client.emails.send(payload);
+    if (error) {
+      console.error('[email] Resend error (certificate):', error);
+      return { sent: false, error: error.message || 'resend_error' };
+    }
+    console.log('[email] Certificado enviado OK:', { to, id: data?.id, isReplacement });
+    return { sent: true, id: data?.id };
+  } catch (err) {
+    console.error('[email] Excepción al enviar certificado:', err);
+    return { sent: false, error: err.message };
+  }
+}
+
+// --- Templates: certificado ------------------------------------------
+
+function buildCertificateHtml({ cursoTitle, comment, isReplacement }) {
+  const title = isReplacement ? '¡Tu certificado fue actualizado!' : '¡Tu certificado está listo!';
+  const intro = isReplacement
+    ? 'Actualizamos el certificado que te habíamos enviado. Te adjuntamos la nueva versión.'
+    : '¡Felicitaciones por completar tu formación! Te enviamos tu certificado adjunto a este mail.';
+
+  const commentBlock = comment ? `
+              <div style="margin: 24px 0; padding: 16px; background-color:#f5f7fa; border-left: 3px solid #82C6C5; border-radius: 4px;">
+                <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #153F71; text-transform: uppercase; letter-spacing: 0.05em;">Comentario del equipo</p>
+                <p style="margin: 0; font-size: 14px; line-height: 1.6; color: #333333;">${escapeHtml(comment)}</p>
+              </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f7fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#153F71;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f7fa; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+          <tr>
+            <td style="padding: 32px 40px; background-color:#153F71; color:#ffffff;">
+              <h1 style="margin:0; font-size:22px; font-weight:700; letter-spacing:0.02em;">Innova Trabajo Social</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin:0 0 16px; font-size:20px; color:#153F71;">${title}</h2>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#333333;">
+                ${intro}
+              </p>
+              <p style="margin:0 0 16px; font-size:15px; font-weight:600; color:#153F71;">
+                Curso: ${escapeHtml(cursoTitle)}
+              </p>
+              <p style="margin:0 0 16px; font-size:14px; line-height:1.6; color:#333333;">
+                📎 Encontrarás el certificado en PDF adjunto a este mail. También podés descargarlo cuando quieras desde tu panel de alumno en <a href="${SITE_URL}/mi-cuenta/mis-cursos" style="color:#153F71;">${SITE_URL}/mi-cuenta/mis-cursos</a>.
+              </p>
+              ${commentBlock}
+              <hr style="border:none; border-top:1px solid #e5e7eb; margin: 24px 0;" />
+              <p style="margin:0; font-size:13px; line-height:1.6; color:#666666;">
+                Ante cualquier consulta, respondé este mail o escribinos a
+                <a href="mailto:${REPLY_TO}" style="color:#153F71;">${REPLY_TO}</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 40px; background-color:#f5f7fa; text-align:center; font-size:12px; color:#999999;">
+              Innova Trabajo Social &middot; Este es un mail automático, no respondas a esta casilla.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildCertificateText({ cursoTitle, comment, isReplacement }) {
+  const title = isReplacement ? '¡Tu certificado fue actualizado!' : '¡Tu certificado está listo!';
+  const intro = isReplacement
+    ? 'Actualizamos el certificado que te habíamos enviado. Te adjuntamos la nueva versión.'
+    : '¡Felicitaciones por completar tu formación! Te enviamos tu certificado adjunto a este mail.';
+
+  const commentBlock = comment ? `\nComentario del equipo:\n${comment}\n` : '';
+
+  return `${title}
+
+${intro}
+
+Curso: ${cursoTitle}
+
+Encontrarás el certificado en PDF adjunto a este mail. También podés descargarlo cuando quieras desde tu panel de alumno en ${SITE_URL}/mi-cuenta/mis-cursos.
+${commentBlock}
+Ante cualquier consulta, escribinos a ${REPLY_TO}.
+
+--
+Innova Trabajo Social
+Este es un mail automático, no respondas a esta casilla.
+`;
+}
