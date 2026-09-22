@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { BookOpen, ExternalLink, Video, Calendar, Search, FileText, Loader } from 'lucide-react';
+import { BookOpen, ExternalLink, Video, Calendar, Search, FileText, Loader, Award } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import styles from './MisCursos.module.css';
 
@@ -212,6 +212,41 @@ function MisCursos() {
 }
 
 /**
+ * Descarga un PDF desde un endpoint protegido con sesión Supabase.
+ * Usado tanto para comprobantes como para certificados.
+ */
+async function downloadProtectedPdf(endpoint, externalReference, filename) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Sesión expirada. Refrescá la página y volvé a iniciar sesión.');
+  }
+
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ externalReference }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || `Error ${res.status}`);
+  }
+
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Card individual de un curso comprado.
  */
 function CourseCard({ purchase, formatDate }) {
@@ -226,10 +261,12 @@ function CourseCard({ purchase, formatDate }) {
     category,
     approvedAt,
     createdAt,
+    hasCertificate,
   } = purchase;
 
-  const [downloadingReceipt, setDownloadingReceipt] = useState(false);
-  const [receiptError, setReceiptError] = useState(null);
+  // 'receipt' | 'certificate' | null — qué descarga está en curso
+  const [downloading, setDownloading] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
 
   const modalidadLabel = modalidad === 'capsula' ? 'Cápsula' : 'Curso';
   const purchaseDate = formatDate(approvedAt || createdAt);
@@ -242,47 +279,29 @@ function CourseCard({ purchase, formatDate }) {
     ? contentUrl
     : `/curso/${cursoSlug}?ref=${externalReference}`;
 
-  const handleDownloadReceipt = async () => {
-    setDownloadingReceipt(true);
-    setReceiptError(null);
+  const handleDownload = async (type) => {
+    setDownloading(type);
+    setDownloadError(null);
     try {
-      // Obtener el token de sesión de Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Sesión expirada. Refrescá la página y volvé a iniciar sesión.');
+      if (type === 'receipt') {
+        await downloadProtectedPdf(
+          '/.netlify/functions/download-receipt',
+          externalReference,
+          `comprobante-${externalReference}.pdf`
+        );
+      } else {
+        await downloadProtectedPdf(
+          '/.netlify/functions/download-certificate',
+          externalReference,
+          `certificado-${externalReference}.pdf`
+        );
       }
-
-      const res = await fetch('/.netlify/functions/download-receipt', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ externalReference }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error ${res.status}`);
-      }
-
-      // Convertir la respuesta en Blob y descargar
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `comprobante-${externalReference}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('[CourseCard] error al descargar comprobante:', err);
-      setReceiptError(err.message || 'No pudimos generar el comprobante.');
-      // Auto-clear el error después de 5 segundos
-      setTimeout(() => setReceiptError(null), 5000);
+      console.error(`[CourseCard] error al descargar ${type}:`, err);
+      setDownloadError(err.message || 'No pudimos descargar el archivo.');
+      setTimeout(() => setDownloadError(null), 5000);
     } finally {
-      setDownloadingReceipt(false);
+      setDownloading(null);
     }
   };
 
@@ -297,6 +316,12 @@ function CourseCard({ purchase, formatDate }) {
           </div>
         )}
         <span className={styles.cardBadge}>{modalidadLabel}</span>
+        {hasCertificate && (
+          <span className={styles.cardCertBadge}>
+            <Award size={12} aria-hidden="true" />
+            Certificado
+          </span>
+        )}
       </div>
 
       <div className={styles.cardBody}>
@@ -328,25 +353,42 @@ function CourseCard({ purchase, formatDate }) {
             </Link>
           )}
 
+          {hasCertificate && (
+            <button
+              type="button"
+              onClick={() => handleDownload('certificate')}
+              disabled={downloading !== null}
+              className={styles.cardBtnCertificate}
+              aria-label="Descargar certificado"
+            >
+              {downloading === 'certificate' ? (
+                <Loader size={16} className={styles.spinIcon} aria-hidden="true" />
+              ) : (
+                <Award size={16} aria-hidden="true" />
+              )}
+              {downloading === 'certificate' ? 'Descargando...' : 'Descargar certificado'}
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={handleDownloadReceipt}
-            disabled={downloadingReceipt}
+            onClick={() => handleDownload('receipt')}
+            disabled={downloading !== null}
             className={styles.cardBtnSecondary}
             aria-label="Descargar comprobante de compra"
           >
-            {downloadingReceipt ? (
+            {downloading === 'receipt' ? (
               <Loader size={16} className={styles.spinIcon} aria-hidden="true" />
             ) : (
               <FileText size={16} aria-hidden="true" />
             )}
-            {downloadingReceipt ? 'Generando...' : 'Descargar comprobante'}
+            {downloading === 'receipt' ? 'Generando...' : 'Descargar comprobante'}
           </button>
         </div>
 
-        {receiptError && (
+        {downloadError && (
           <p className={styles.cardError} role="alert">
-            {receiptError}
+            {downloadError}
           </p>
         )}
       </div>

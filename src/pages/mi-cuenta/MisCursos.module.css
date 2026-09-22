@@ -450,3 +450,46 @@
   border-radius: var(--radius-sm);
   line-height: var(--line-height-relaxed);
 }
+
+/* Badge "Certificado" sobre la imagen (esquina superior derecha) */
+.cardCertBadge {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2xs) var(--space-sm);
+  background-color: var(--color-success);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-pill);
+}
+
+/* Botón de certificado: destacado, es el "logro" del alumno */
+.cardBtnCertificate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.cardBtnCertificate:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.cardBtnCertificate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

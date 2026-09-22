@@ -66,6 +66,9 @@ export const handler = async (event) => {
           approvedAt: p.approvedAt,
           createdAt: p.createdAt,
           provider: p.provider,
+          // Solo exponemos si existe, no la ruta interna del Storage.
+          hasCertificate: !!p.certificateUrl,
+          certificateUploadedAt: p.certificateUploadedAt || null,
           ...productData,
         };
       })
