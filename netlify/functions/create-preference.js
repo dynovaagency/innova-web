@@ -1,34 +1,30 @@
 /**
  * POST /.netlify/functions/create-preference
  *
- * Recibe:
+ * Crea la preferencia de Mercado Pago.
+ *
+ * Body:
  *   {
  *     cursoSlug: "vulnerabilidad-social",
- *     buyerEmail: "usuario@example.com"   // OBLIGATORIO desde ahora
+ *     buyerEmail: "usuario@example.com",   // obligatorio
+ *     couponCode?: "VERANO20"               // opcional
  *   }
  *
- * Devuelve:
- *   {
- *     preferenceId: "42585009-...",
- *     initPoint: "https://www.mercadopago.com.ar/checkout/..." | "/mock-checkout?...",
- *     externalReference: "inv_..."
- *   }
+ * Response:
+ *   { preferenceId, initPoint, externalReference, amount, discountApplied }
  *
- * El email es OBLIGATORIO desde este cambio. Sin email, el comprador no
- * recibe el mail de acceso y queda "huérfano" en el sistema (situación que
- * ya ocurrió en producción). El frontend también lo valida, esto es la
- * segunda línea de defensa.
+ * Mercado Pago está habilitado para cápsulas y cursos (hotfix Payway).
  *
- * Sprint 2.10: MercadoPago está restringido solo a cápsulas. Los cursos
- * usan transferencia bancaria o Go Cuotas (create-manual-payment.js).
- * Esta restricción es de defensa en profundidad: el frontend ya oculta MP
- * de los cursos en el PaymentModal, esto bloquea intentos de bypass.
+ * Cupones: el descuento se recalcula acá (nunca confiamos en el monto
+ * del frontend). El uso del cupón se registra recién cuando el pago se
+ * aprueba (mp-webhook / admin-payment-mark-approved).
  */
 
 import { SITE_URL, buildBackUrls, ok, error, preflight } from './_lib/config.js';
 import { getProvider } from './_lib/providers/payment/index.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import * as productsRepo from './_lib/repositories/products.js';
+import { validateCoupon } from './_lib/coupons.js';
 
 // Regex básico de email. Sincronizado con el del frontend.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,7 +44,7 @@ export const handler = async (event) => {
     return error(400, 'Invalid JSON body');
   }
 
-  const { cursoSlug, buyerEmail } = payload;
+  const { cursoSlug, buyerEmail, couponCode } = payload;
 
   if (!cursoSlug) {
     return error(400, 'cursoSlug es requerido');
@@ -68,13 +64,33 @@ export const handler = async (event) => {
     return error(404, 'Producto no encontrado o inactivo', { cursoSlug });
   }
 
-  // Sprint 2.10: los cursos no aceptan MercadoPago. Solo transferencia
-  // o Go Cuotas (via create-manual-payment).
- // if (product.modalidad === 'curso') {
- //   return error(400, 'Este producto solo puede pagarse con transferencia bancaria o Go Cuotas', {
- //     modalidad: product.modalidad,
- //   });
- // }
+  // ---------- Cupón (opcional) ----------
+  let amount = product.price;
+  let couponData = null;
+
+  if (couponCode) {
+    try {
+      const result = await validateCoupon({
+        code: couponCode,
+        product,
+        paymentMethod: 'mercadopago',
+        buyerEmail: normalizedEmail,
+      });
+      if (!result.valid) {
+        return error(400, result.message, { reason: result.reason });
+      }
+      amount = result.finalAmount;
+      couponData = {
+        couponId: result.coupon.id,
+        couponCode: result.coupon.code,
+        originalAmount: result.originalAmount,
+        discountApplied: result.discountApplied,
+      };
+    } catch (err) {
+      console.error('[create-preference] error validando cupón:', err);
+      return error(500, 'No pudimos validar el código de descuento. Intentá de nuevo.');
+    }
+  }
 
   const externalReference = generateExternalReference();
 
@@ -85,8 +101,10 @@ export const handler = async (event) => {
       ? `${SITE_URL}/.netlify/functions/mp-webhook`
       : null;
 
+    // Pasamos una copia del producto con el precio ya descontado,
+    // así el provider arma la preferencia con el monto correcto.
     const { checkoutUrl, providerReference, metadata } = await provider.createCheckout({
-      product,
+      product: { ...product, price: amount },
       buyerEmail: normalizedEmail,
       externalReference,
       backUrls: buildBackUrls(cursoSlug, externalReference),
@@ -96,7 +114,7 @@ export const handler = async (event) => {
     await paymentsRepo.insert({
       externalReference,
       status: 'pending',
-      amount: product.price,
+      amount,
       currency: product.currency || 'ARS',
       buyerEmail: normalizedEmail,
       cursoSlug,
@@ -107,12 +125,15 @@ export const handler = async (event) => {
       mpPreferenceId: metadata?.mpPreferenceId || providerReference,
       mpPaymentId: null,
       createdAt: new Date().toISOString(),
+      ...(couponData || {}),
     });
 
     return ok({
       preferenceId: providerReference,
       initPoint: checkoutUrl,
       externalReference,
+      amount,
+      discountApplied: couponData?.discountApplied || 0,
       ...(metadata?.mock && { mock: true }),
     });
   } catch (err) {

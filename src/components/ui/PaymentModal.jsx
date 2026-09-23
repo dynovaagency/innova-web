@@ -184,7 +184,7 @@ function PaymentModal({ open, onClose, product }) {
         body: JSON.stringify({
           cursoSlug: product.slug,
           buyerEmail: email.trim(),
-          provider: 'transferencia',
+          paymentMethod: 'transferencia',
         }),
       });
       const data = await res.json();
@@ -217,7 +217,7 @@ function PaymentModal({ open, onClose, product }) {
         body: JSON.stringify({
           cursoSlug: product.slug,
           buyerEmail: email.trim(),
-          provider: 'gocuotas',
+          paymentMethod: 'gocuotas',
         }),
       });
       const data = await res.json();

@@ -14,6 +14,7 @@ import { PAYMENT_STATUS } from './_lib/providers/payment/interface.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import { resolveProductTitle } from './_lib/products/title-resolver.js';
 import { buildReceiptAttachment } from './_lib/receiptForEmail.js';
+import { registerCouponUse } from './_lib/coupons.js';
 
 const persistedStatusFor = (providerStatus) => {
   if (providerStatus === PAYMENT_STATUS.APPROVED) return 'approved';
@@ -75,6 +76,12 @@ export const handler = async (event) => {
     });
 
     console.log('[webhook] pago actualizado:', { externalReference, status: mappedStatus });
+
+    // Registrar el uso del cupón (si hubo) recién cuando el pago se aprueba.
+    // Idempotente: si el webhook llega dos veces, no se duplica.
+    if (mappedStatus === 'approved' && existing.couponId) {
+      await registerCouponUse({ ...existing, status: 'approved' });
+    }
 
     if (
       mappedStatus === 'approved' &&
