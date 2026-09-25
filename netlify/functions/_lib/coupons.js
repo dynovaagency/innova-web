@@ -22,6 +22,12 @@ export const ALLOW_FREE_COUPONS = false;
 
 const CODE_REGEX = /^[A-Z0-9_-]{3,30}$/;
 
+// Métodos donde el sistema controla el monto cobrado.
+// Go Cuotas y Payway cobran un monto fijo configurado del lado del
+// proveedor, así que un cupón no se puede aplicar correctamente.
+// Pendiente: revisar si Go Cuotas permite cobros con monto dinámico.
+export const COUPON_METHODS = ['mercadopago', 'transferencia'];
+
 let _supabase = null;
 export const getSupabase = () => {
   if (!_supabase) {
@@ -116,10 +122,14 @@ const reject = (reason, message) => ({ valid: false, reason, message });
  * >}
  */
 export const validateCoupon = async ({ code, product, paymentMethod, buyerEmail }) => {
-  const normalized = normalizeCode(code);
-  if (!normalized || !isValidCodeFormat(normalized)) {
-    return reject('not_found', 'El código ingresado no existe.');
+  if (!COUPON_METHODS.includes(paymentMethod)) {
+    return reject(
+      'method_not_supported',
+      'Los códigos de descuento no están disponibles para este medio de pago.'
+    );
   }
+
+  const normalized = normalizeCode(code);
 
   const { data: coupon, error } = await getSupabase()
     .from('cupones')
