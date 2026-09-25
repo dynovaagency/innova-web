@@ -42,6 +42,9 @@ import Inscriptos from './pages/admin/Inscriptos.jsx';
 import Configuracion from './pages/admin/Configuracion.jsx';
 import CapsulaForm from './pages/admin/CapsulaForm.jsx';
 import PagoDetalle from './pages/admin/PagoDetalle.jsx';
+import Cupones from './pages/admin/Cupones.jsx';
+import CuponForm from './pages/admin/CuponForm.jsx';
+import CuponDetalle from './pages/admin/CuponDetalle.jsx';
 
 function App() {
   return (
@@ -94,6 +97,10 @@ function App() {
       <Route index element={<Dashboard />} />
       <Route path="capsulas" element={<Capsulas />} />
       <Route path="pagos/:externalReference" element={<PagoDetalle />} />
+      <Route path="cupones" element={<Cupones />} />
+      <Route path="cupones/nuevo" element={<CuponForm />} />
+      <Route path="cupones/:id" element={<CuponDetalle />} />
+      <Route path="cupones/:id/editar" element={<CuponForm />} />
       <Route path="capsulas/nueva" element={<CapsulaForm />} />
       <Route path="capsulas/:slug/editar" element={<CapsulaForm />} />
       <Route path="pagos" element={<Pagos />} />

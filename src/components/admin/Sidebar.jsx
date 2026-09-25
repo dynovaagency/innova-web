@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   BookOpen,
   CreditCard,
+  Ticket,
   Users,
   Settings,
 } from 'lucide-react';
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/capsulas', label: 'Cápsulas', icon: BookOpen },
   { to: '/admin/pagos', label: 'Pagos', icon: CreditCard },
+  { to: '/admin/cupones', label: 'Cupones', icon: Ticket },
   { to: '/admin/inscriptos', label: 'Inscriptos', icon: Users },
   { to: '/admin/configuracion', label: 'Configuración', icon: Settings },
 ];
