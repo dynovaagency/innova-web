@@ -158,6 +158,25 @@ export async function generateReceiptPDF({ payment, product, profile, buyerEmail
   drawKeyValue(page, 'Estado', 'APROBADO', 50, payY - 75, helvetica, helveticaBold);
   drawKeyValue(page, 'Referencia externa', payment.externalReference, 50, payY - 100, helvetica, helveticaBold);
 
+  // Cupón de descuento (si hubo)
+  if (payment.couponCode) {
+    const fmt = (n) =>
+      `${payment.currency || 'ARS'} ${new Intl.NumberFormat('es-AR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(n || 0)}`;
+
+    drawKeyValue(
+      page,
+      'Cupón de descuento',
+      `${payment.couponCode} · − ${fmt(payment.discountApplied)} (precio original ${fmt(payment.originalAmount)})`,
+      50,
+      payY - 125,
+      helvetica,
+      helveticaBold
+    );
+  }
+
   // ========== NOTA ==========
   const noteY = 180;
 

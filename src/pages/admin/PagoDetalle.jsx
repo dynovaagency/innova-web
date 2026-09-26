@@ -277,6 +277,23 @@ function PagoDetalle() {
                 {formatCurrency(payment.amount, payment.currency)}
               </dd>
             </div>
+            {payment.couponCode && (
+              <div className={styles.dlRow}>
+                <dt>Cupón aplicado</dt>
+                <dd>
+                  <Link
+                    to={`/admin/cupones/${payment.couponId}`}
+                    className={styles.code}
+                  >
+                    {payment.couponCode}
+                  </Link>
+                  <span className={styles.hint}>
+                    {' '}(− {formatCurrency(payment.discountApplied, payment.currency)} sobre{' '}
+                    {formatCurrency(payment.originalAmount, payment.currency)})
+                  </span>
+                </dd>
+              </div>
+            )}
             <div className={styles.dlRow}>
               <dt>Email del comprador</dt>
               <dd>{payment.buyerEmail || '—'}</dd>

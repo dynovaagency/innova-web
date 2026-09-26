@@ -554,3 +554,151 @@
   border-radius: var(--radius-pill);
   text-transform: uppercase;
 }
+
+/* ---------- Cupón de descuento ---------- */
+.couponArea {
+  margin-bottom: var(--space-md);
+}
+
+.couponToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.couponToggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.couponForm {
+  display: flex;
+  flex-direction: column;
+}
+
+.couponInputRow {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.couponInput {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.05em;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+
+.couponInput:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(130, 198, 197, 0.18);
+}
+
+.couponApplyBtn {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.couponApplyBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.couponSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--color-secondary-soft);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--radius-md);
+}
+
+.couponRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.couponRowTotal {
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--color-secondary);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  font-size: var(--font-size-base);
+}
+
+.couponCode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.couponDiscount {
+  color: var(--color-success);
+  font-weight: var(--font-weight-semibold);
+}
+
+.couponRemove {
+  margin-left: var(--space-2xs);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--font-size-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.couponRemove:hover {
+  color: var(--color-accent);
+}
+
+.couponUnavailable,
+.couponNotice {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-relaxed);
+}
+
+.couponNotice {
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background-color: rgba(240, 165, 71, 0.1);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}

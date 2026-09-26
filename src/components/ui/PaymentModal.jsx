@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Tag } from 'lucide-react';
 import { formatCurrency } from '../../lib/format.js';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import LoginModal from '../auth/LoginModal.jsx';
@@ -7,20 +8,21 @@ import styles from './PaymentModal.module.css';
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Modal genérico de compra — presenta al usuario los métodos de pago
- * habilitados para el producto y arranca el flujo correspondiente.
+ * Modal de compra — presenta los métodos de pago habilitados para el
+ * producto y arranca el flujo correspondiente.
  *
- * Solo dos flows por ahora:
- *  - MercadoPago (Cápsulas). Redirige al checkout externo.
- *  - Transferencia (Cursos). Muestra los datos bancarios inline.
+ * Flujos:
+ *  - Mercado Pago: redirige al checkout externo.
+ *  - Transferencia: muestra los datos bancarios inline.
+ *  - Go Cuotas: registra el pago pendiente y redirige al link del producto.
+ *
+ * Cupones:
+ *  - Disponibles solo en métodos donde controlamos el monto (COUPON_METHODS).
+ *  - El frontend solo muestra el descuento; el backend lo recalcula y aplica.
  *
  * Props:
- *   open: boolean — controla visibilidad.
- *   onClose: () => void — se llama al cerrar.
- *   product: {
- *     slug, title, price, priceTransferencia, priceGocuotas, currency,
- *     modalidad, gocuotasUrl
- *   } — el producto activo.
+ *   open, onClose, product: { slug, title, price, priceTransferencia,
+ *                             priceGocuotas, currency, modalidad, gocuotasUrl }
  */
 
 const PAYMENT_METHODS = [
@@ -44,6 +46,9 @@ const PAYMENT_METHODS = [
   },
 ];
 
+// Sincronizado con COUPON_METHODS del backend (_lib/coupons.js).
+const COUPON_METHODS = ['mercadopago', 'transferencia'];
+
 function PaymentModal({ open, onClose, product }) {
   const [step, setStep] = useState('select'); // 'select' | 'transferencia'
   const [email, setEmail] = useState('');
@@ -53,9 +58,19 @@ function PaymentModal({ open, onClose, product }) {
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [externalReference, setExternalReference] = useState(null);
+  const [paidAmount, setPaidAmount] = useState(null);
   const [copyToast, setCopyToast] = useState(null);
   const [error, setError] = useState(null);
   const closeButtonRef = useRef(null);
+
+  // Cupón
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState(null);
+  const [couponNotice, setCouponNotice] = useState(null);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  // appliedCoupon: { code, method, originalAmount, discountApplied, finalAmount }
 
   const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
   const emailShowError = emailTouched && email.length > 0 && !emailValid;
@@ -76,8 +91,15 @@ function PaymentModal({ open, onClose, product }) {
       setSelectedMethod(null);
       setSubmitting(false);
       setExternalReference(null);
+      setPaidAmount(null);
       setError(null);
       setCopyToast(null);
+      setCouponOpen(false);
+      setCouponInput('');
+      setCouponLoading(false);
+      setCouponError(null);
+      setCouponNotice(null);
+      setAppliedCoupon(null);
     }
   }, [open]);
 
@@ -117,7 +139,7 @@ function PaymentModal({ open, onClose, product }) {
     m.applicableFor.includes(product.modalidad || 'capsula')
   );
 
-  // Precio a mostrar según método elegido
+  // Precio base según método elegido
   const getPriceForMethod = (methodId) => {
     if (methodId === 'transferencia' && product.priceTransferencia != null) {
       return product.priceTransferencia;
@@ -128,11 +150,135 @@ function PaymentModal({ open, onClose, product }) {
     return product.price;
   };
 
+  const couponActive = appliedCoupon && appliedCoupon.method === selectedMethod;
+
   const currentPrice = selectedMethod
-    ? getPriceForMethod(selectedMethod)
+    ? couponActive
+      ? appliedCoupon.finalAmount
+      : getPriceForMethod(selectedMethod)
     : product.price;
 
-  const canProceed = emailValid && selectedMethod && !submitting;
+  const canProceed = emailValid && selectedMethod && !submitting && !couponLoading;
+
+  // ---------------- Cupones ----------------
+
+  /**
+   * Valida un código contra el backend. Nunca lanza: devuelve
+   * { valid: true, ... } o { valid: false, message }.
+   */
+  const requestCouponValidation = async (code, methodId) => {
+    try {
+      const res = await fetch('/.netlify/functions/coupons-validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          cursoSlug: product.slug,
+          paymentMethod: methodId,
+          buyerEmail: emailValid ? email.trim() : undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { valid: false, message: data.error || 'No pudimos validar el código.' };
+      }
+      return data;
+    } catch (err) {
+      console.error('[PaymentModal] error validando cupón:', err);
+      return { valid: false, message: 'No pudimos conectarnos con el servidor. Probá de nuevo.' };
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Ingresá un código.');
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError(null);
+    setCouponNotice(null);
+
+    const result = await requestCouponValidation(code, selectedMethod);
+    setCouponLoading(false);
+
+    if (!result.valid) {
+      setCouponError(result.message);
+      return;
+    }
+
+    setAppliedCoupon({
+      code: result.code,
+      method: selectedMethod,
+      originalAmount: result.originalAmount,
+      discountApplied: result.discountApplied,
+      finalAmount: result.finalAmount,
+    });
+    setCouponInput('');
+    setCouponOpen(false);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponNotice(null);
+    setCouponError(null);
+  };
+
+  /**
+   * Al cambiar de método con un cupón aplicado:
+   *  - Si el nuevo método no admite cupones, se quita y se avisa.
+   *  - Si lo admite, se revalida (el precio base cambia según el método).
+   */
+  const handleSelectMethod = async (methodId) => {
+    setSelectedMethod(methodId);
+    setError(null);
+    setCouponNotice(null);
+    setCouponError(null);
+
+    if (!appliedCoupon || appliedCoupon.method === methodId) return;
+
+    const code = appliedCoupon.code;
+
+    if (!COUPON_METHODS.includes(methodId)) {
+      setAppliedCoupon(null);
+      setCouponNotice(`El código ${code} no aplica a este medio de pago, así que quitamos el descuento.`);
+      return;
+    }
+
+    setCouponLoading(true);
+    const result = await requestCouponValidation(code, methodId);
+    setCouponLoading(false);
+
+    if (result.valid) {
+      setAppliedCoupon({
+        code: result.code,
+        method: methodId,
+        originalAmount: result.originalAmount,
+        discountApplied: result.discountApplied,
+        finalAmount: result.finalAmount,
+      });
+    } else {
+      setAppliedCoupon(null);
+      setCouponNotice(result.message);
+    }
+  };
+
+  /**
+   * Si el backend rechaza el cupón al crear el pago (por ejemplo, se agotó
+   * mientras el alumno completaba el formulario), lo quitamos y avisamos.
+   */
+  const handleBackendError = (data, fallback) => {
+    if (data?.reason && appliedCoupon) {
+      setAppliedCoupon(null);
+      setError(`${data.error} Quitamos el descuento: podés continuar con el precio normal.`);
+    } else {
+      setError(data?.error || fallback);
+    }
+  };
+
+  const couponCodeForRequest = couponActive ? appliedCoupon.code : undefined;
+
+  // ---------------- Pagos ----------------
 
   const handleProceed = async () => {
     setError(null);
@@ -159,11 +305,12 @@ function PaymentModal({ open, onClose, product }) {
         body: JSON.stringify({
           cursoSlug: product.slug,
           buyerEmail: email.trim(),
+          couponCode: couponCodeForRequest,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'No pudimos iniciar el pago. Intentá de nuevo.');
+        handleBackendError(data, 'No pudimos iniciar el pago. Intentá de nuevo.');
         setSubmitting(false);
         return;
       }
@@ -185,15 +332,18 @@ function PaymentModal({ open, onClose, product }) {
           cursoSlug: product.slug,
           buyerEmail: email.trim(),
           paymentMethod: 'transferencia',
+          couponCode: couponCodeForRequest,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'No pudimos generar tu pago. Intentá de nuevo.');
+        handleBackendError(data, 'No pudimos generar tu pago. Intentá de nuevo.');
         setSubmitting(false);
         return;
       }
       setExternalReference(data.externalReference);
+      // El monto a transferir es el que registró el backend.
+      setPaidAmount(data.amount);
       setStep('transferencia');
       setSubmitting(false);
     } catch (err) {
@@ -248,6 +398,8 @@ function PaymentModal({ open, onClose, product }) {
     if (submitting) return;
     onClose?.();
   };
+
+  const transferAmount = paidAmount ?? currentPrice;
 
   return (
     <>
@@ -351,7 +503,7 @@ function PaymentModal({ open, onClose, product }) {
                     <button
                       key={method.id}
                       type="button"
-                      onClick={() => setSelectedMethod(method.id)}
+                      onClick={() => handleSelectMethod(method.id)}
                       className={isSelected ? `${styles.methodCard} ${styles.methodCardSelected}` : styles.methodCard}
                       disabled={submitting}
                     >
@@ -373,6 +525,95 @@ function PaymentModal({ open, onClose, product }) {
                 })}
               </div>
             </div>
+
+            {/* Cupón de descuento */}
+            {selectedMethod && (
+              <div className={styles.couponArea}>
+                {!COUPON_METHODS.includes(selectedMethod) ? (
+                  <p className={styles.couponUnavailable}>
+                    Los códigos de descuento no están disponibles para pagos con Go Cuotas.
+                  </p>
+                ) : couponActive ? (
+                  <div className={styles.couponSummary}>
+                    <div className={styles.couponRow}>
+                      <span>Precio</span>
+                      <span>{formatCurrency(appliedCoupon.originalAmount, product.currency)}</span>
+                    </div>
+                    <div className={styles.couponRow}>
+                      <span className={styles.couponCode}>
+                        <Tag size={14} aria-hidden="true" />
+                        {appliedCoupon.code}
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className={styles.couponRemove}
+                          disabled={submitting}
+                        >
+                          Quitar
+                        </button>
+                      </span>
+                      <span className={styles.couponDiscount}>
+                        − {formatCurrency(appliedCoupon.discountApplied, product.currency)}
+                      </span>
+                    </div>
+                    <div className={`${styles.couponRow} ${styles.couponRowTotal}`}>
+                      <span>Total</span>
+                      <span>{formatCurrency(appliedCoupon.finalAmount, product.currency)}</span>
+                    </div>
+                  </div>
+                ) : !couponOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => setCouponOpen(true)}
+                    className={styles.couponToggle}
+                    disabled={couponLoading}
+                  >
+                    <Tag size={14} aria-hidden="true" />
+                    {couponLoading ? 'Recalculando descuento...' : '¿Tenés un código de descuento?'}
+                  </button>
+                ) : (
+                  <div className={styles.couponForm}>
+                    <div className={styles.couponInputRow}>
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase().replace(/\s/g, ''));
+                          setCouponError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        className={styles.couponInput}
+                        placeholder="Ingresá tu código"
+                        maxLength={30}
+                        disabled={couponLoading || submitting}
+                        aria-label="Código de descuento"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        className={styles.couponApplyBtn}
+                        disabled={couponLoading || submitting || !couponInput}
+                      >
+                        {couponLoading ? 'Validando...' : 'Aplicar'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className={styles.fieldError} role="alert">{couponError}</p>
+                    )}
+                  </div>
+                )}
+
+                {couponNotice && (
+                  <p className={styles.couponNotice} role="status">{couponNotice}</p>
+                )}
+              </div>
+            )}
 
             {error && (
               <p className={styles.errorMessage} role="alert">
@@ -435,8 +676,8 @@ function PaymentModal({ open, onClose, product }) {
               />
               <TransferField
                 label="Monto"
-                value={formatCurrency(currentPrice, product.currency)}
-                onCopy={() => copyToClipboard(String(currentPrice), 'Monto')}
+                value={formatCurrency(transferAmount, product.currency)}
+                onCopy={() => copyToClipboard(String(transferAmount), 'Monto')}
               />
               <TransferField
                 label="Referencia"
