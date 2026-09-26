@@ -27,7 +27,7 @@ import { requireAdmin } from './_lib/auth/middleware.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import { sendAccessEmail } from './_lib/email.js';
 import { resolveProductTitle } from './_lib/products/title-resolver.js';
-import { registerCouponUse } from './_lib/coupons.js';
+import { onPaymentApproved } from './_lib/paymentApproval.js';
 
 const MANUAL_METHODS = ['transferencia', 'gocuotas', 'payway'];
 
@@ -94,10 +94,8 @@ export const handler = async (event) => {
       { admin: auth.admin.email, provider: payment.provider }
     );
 
-    // Registrar el uso del cupón (si hubo). No bloquea la aprobación si falla.
-    if (payment.couponId) {
-      await registerCouponUse({ ...payment, status: 'approved' });
-    }
+    // Efectos de aprobación (cupón, y a futuro facturación).
+    await onPaymentApproved({ ...payment, status: 'approved', approvedAt: now });
 
     // 2. Enviar email de acceso (idempotente: solo si no se envió antes)
     let emailResult = { sent: false };

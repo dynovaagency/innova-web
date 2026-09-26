@@ -3,11 +3,14 @@
  *
  * SOLO DISPONIBLE EN MOCK_MODE. Simula que MP aprobó el pago del ref indicado.
  *
- * Refactor bugfix: consume paymentsRepo en vez de store.js viejo.
+ * Ejecuta los mismos efectos de aprobación que el webhook real
+ * (onPaymentApproved), para que develop se comporte igual que producción
+ * en todo lo que no sea el email (en mock no se envían mails).
  */
 
 import { MOCK_MODE, ok, error, preflight } from './_lib/config.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
+import { onPaymentApproved } from './_lib/paymentApproval.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -30,5 +33,8 @@ export const handler = async (event) => {
   });
 
   console.log('[MOCK] pago aprobado:', ref);
+
+  await onPaymentApproved(updated);
+
   return ok({ approved: true, externalReference: ref, cursoSlug: updated.cursoSlug });
 };
