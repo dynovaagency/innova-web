@@ -4,6 +4,7 @@ import { formatCurrency } from '../../lib/format.js';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import LoginModal from '../auth/LoginModal.jsx';
 import styles from './PaymentModal.module.css';
+import { BANK_DETAILS } from '../../lib/paymentConfig.js';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -651,28 +652,25 @@ function PaymentModal({ open, onClose, product }) {
             <div className={styles.transferDetails}>
               <TransferField
                 label="Titular"
-                value="Innova Trabajo Social"
-                onCopy={() => copyToClipboard('Innova Trabajo Social', 'Titular')}
-              />
-              <TransferField
-                label="CUIT"
-                value="30-71234567-8"
-                onCopy={() => copyToClipboard('30-71234567-8', 'CUIT')}
-              />
-              <TransferField
-                label="Banco"
-                value="Banco Nación"
-                onCopy={() => copyToClipboard('Banco Nación', 'Banco')}
+                value={BANK_DETAILS.titular}
+                onCopy={() => copyToClipboard(BANK_DETAILS.titular, 'Titular')}
               />
               <TransferField
                 label="CBU"
-                value="0000000000000000000000"
-                onCopy={() => copyToClipboard('0000000000000000000000', 'CBU')}
+                value={BANK_DETAILS.cbu}
+                onCopy={() => copyToClipboard(BANK_DETAILS.cbu, 'CBU')}
+                mono
               />
               <TransferField
                 label="Alias"
-                value="INNOVA.TRABAJO.SOCIAL"
-                onCopy={() => copyToClipboard('INNOVA.TRABAJO.SOCIAL', 'Alias')}
+                value={BANK_DETAILS.alias}
+                onCopy={() => copyToClipboard(BANK_DETAILS.alias, 'Alias')}
+                mono
+              />
+              <TransferField
+                label="Cuenta"
+                value={`${BANK_DETAILS.tipoCuenta} · Nº ${BANK_DETAILS.cuenta} · Suc. ${BANK_DETAILS.sucursal}`}
+                onCopy={() => copyToClipboard(BANK_DETAILS.cuenta, 'Número de cuenta')}
               />
               <TransferField
                 label="Monto"

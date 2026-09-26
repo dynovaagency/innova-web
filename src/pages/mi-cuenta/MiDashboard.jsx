@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useOutletContext, useLocation } from 'react-router-dom';
 import { BookOpen, Calendar, ArrowRight } from 'lucide-react';
 import styles from './MiDashboard.module.css';
+import { supabase } from '../../lib/supabase.js';
 
 /**
  * Dashboard del panel de alumno.
@@ -28,10 +29,11 @@ function MiDashboard() {
 
     const fetchPurchases = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Sesión expirada. Volvé a iniciar sesión.');
         const res = await fetch('/.netlify/functions/user-purchases', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: profile?.email }),
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.json();

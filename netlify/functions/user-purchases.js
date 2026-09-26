@@ -1,45 +1,49 @@
 /**
  * POST /.netlify/functions/user-purchases
  *
- * Devuelve las compras aprobadas del usuario por email match.
+ * Devuelve las compras aprobadas del usuario AUTENTICADO.
+ * El email se toma del token de Supabase, nunca del body:
+ * así nadie puede consultar las compras de otra persona.
  *
- * Body:
- *   { email: string }
+ * Headers:
+ *   Authorization: Bearer <supabase_access_token>
  *
  * Response:
- *   200 { purchases: [{ externalReference, productTitle, cursoSlug,
- *                       amount, currency, approvedAt, createdAt,
- *                       contentType, contentUrl, imageUrl, modalidad }] }
+ *   200 { purchases: [...] }
+ *   401 si no hay sesión válida
  *
- * TODO Fase 6: cuando linkeamos compras a user_id, cambiar el match por id
- * en vez de email.
+ * TODO Fase 6: cuando linkeemos compras a user_id, buscar por id en vez de email.
  */
 
 import { ok, error, preflight } from './_lib/config.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import * as productsRepo from './_lib/repositories/products.js';
+import { createClient } from '@supabase/supabase-js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
   if (event.httpMethod !== 'POST') return error(405, 'Method not allowed');
 
-  let payload;
-  try {
-    payload = JSON.parse(event.body || '{}');
-  } catch {
-    return error(400, 'Invalid JSON body');
+  const authHeader = event.headers.authorization || event.headers.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return error(401, 'No autenticado');
   }
+  const token = authHeader.replace('Bearer ', '');
 
-  const { email } = payload;
-  if (!email || typeof email !== 'string') {
-    return error(400, 'email es requerido');
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } }
+  );
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData?.user?.email) {
+    return error(401, 'Sesión inválida o expirada');
   }
+  const email = userData.user.email;
 
   try {
-    // Buscar todas las compras aprobadas por email match
     const approved = await paymentsRepo.findApprovedByEmail(email);
 
-    // Enriquecer cada pago con datos del producto (imagen, URL, etc)
     const purchases = await Promise.all(
       approved.map(async (p) => {
         let productData = {};
@@ -77,8 +81,6 @@ export const handler = async (event) => {
     return ok({ purchases });
   } catch (err) {
     console.error('[user-purchases] error:', err);
-    return error(500, 'No se pudieron cargar las compras', {
-      details: err.message,
-    });
+    return error(500, 'No se pudieron cargar las compras', { details: err.message });
   }
 };
