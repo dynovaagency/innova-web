@@ -115,6 +115,12 @@ function useAuth() {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
+      options: {
+        // Destino explícito del link de confirmación. Usa el dominio actual,
+        // así funciona igual en develop y en producción. Tiene que estar
+        // permitido en Authentication → URL Configuration → Redirect URLs.
+        emailRedirectTo: `${window.location.origin}/email-confirmado`,
+      },
     });
     if (authError) throw authError;
 
