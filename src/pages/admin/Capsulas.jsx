@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit2, Eye, EyeOff, BookOpen } from 'lucide-react';
@@ -48,7 +49,7 @@ function Capsulas() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/.netlify/functions/admin-products-list', {
+      const res = await adminFetch('/.netlify/functions/admin-products-list', {
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -91,7 +92,7 @@ function Capsulas() {
 
     setConfirmToggle((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch('/.netlify/functions/admin-product-toggle-active', {
+      const res = await adminFetch('/.netlify/functions/admin-product-toggle-active', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

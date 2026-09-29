@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -94,7 +95,7 @@ function CapsulaForm() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-product-get?slug=${encodeURIComponent(paramSlug)}`,
         { credentials: 'include' }
       );
@@ -197,7 +198,7 @@ function CapsulaForm() {
     setSaving(true);
     setFieldErrors({});
     try {
-      const res = await fetch('/.netlify/functions/admin-product-upsert', {
+      const res = await adminFetch('/.netlify/functions/admin-product-upsert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

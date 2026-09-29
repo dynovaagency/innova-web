@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CreditCard } from 'lucide-react';
@@ -75,7 +76,7 @@ function Pagos() {
         if (v) params.set(k, v);
       });
 
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-payments-list?${params.toString()}`,
         { credentials: 'include' }
       );
@@ -95,7 +96,7 @@ function Pagos() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/.netlify/functions/admin-products-list', {
+        const res = await adminFetch('/.netlify/functions/admin-products-list', {
           credentials: 'include',
         });
         if (!res.ok) return;

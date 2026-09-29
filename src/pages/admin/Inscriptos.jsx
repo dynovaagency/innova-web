@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Users, Download, Filter, X, Search } from 'lucide-react';
@@ -67,7 +68,7 @@ function Inscriptos() {
         if (v) params.set(k, v);
       });
 
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-enrollments-list?${params.toString()}`,
         { credentials: 'include' }
       );
@@ -87,7 +88,7 @@ function Inscriptos() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/.netlify/functions/admin-products-list', {
+        const res = await adminFetch('/.netlify/functions/admin-products-list', {
           credentials: 'include',
         });
         if (!res.ok) return;
@@ -141,7 +142,7 @@ function Inscriptos() {
         if (v) params.set(k, v);
       });
 
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-enrollments-export?${params.toString()}`,
         { credentials: 'include' }
       );

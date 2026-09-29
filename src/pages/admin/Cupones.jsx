@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Ticket } from 'lucide-react';
@@ -38,7 +39,7 @@ function Cupones() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/.netlify/functions/admin-coupons-list', {
+      const res = await adminFetch('/.netlify/functions/admin-coupons-list', {
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`Server error: ${res.status}`);

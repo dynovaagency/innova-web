@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Lock } from 'lucide-react';
@@ -46,7 +47,7 @@ function CuponForm() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        const res = await fetch('/.netlify/functions/admin-products-list', {
+        const res = await adminFetch('/.netlify/functions/admin-products-list', {
           credentials: 'include',
         });
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
@@ -66,7 +67,7 @@ function CuponForm() {
       setLoading(true);
       setLoadError(null);
       try {
-        const res = await fetch(
+        const res = await adminFetch(
           `/.netlify/functions/admin-coupon-get?id=${encodeURIComponent(id)}`,
           { credentials: 'include' }
         );
@@ -166,7 +167,7 @@ function CuponForm() {
     };
 
     try {
-      const res = await fetch('/.netlify/functions/admin-coupon-upsert', {
+      const res = await adminFetch('/.netlify/functions/admin-coupon-upsert', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

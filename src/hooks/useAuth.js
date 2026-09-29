@@ -27,6 +27,7 @@ function useAuth() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   // Cargar sesión inicial + suscribirse a cambios de auth
   useEffect(() => {
@@ -65,6 +66,7 @@ function useAuth() {
 
   // Carga el profile del usuario desde la tabla `usuarios`
   const loadProfile = async (userId) => {
+    setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from('usuarios')
@@ -78,6 +80,7 @@ function useAuth() {
       console.error('[useAuth] error cargando profile:', err);
       setProfile(null);
     } finally {
+      setProfileLoading(false);
       setLoading(false);
     }
   };
@@ -183,6 +186,7 @@ function useAuth() {
     user,
     profile,
     loading,
+    profileLoading,
     signIn,
     signUp,
     signOut,

@@ -1,66 +1,56 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useAuthContext } from '../context/AuthContext.jsx';
+
+const ADMIN_ROLES = ['admin', 'superadmin'];
 
 /**
- * Verifica y expone la sesión del admin logueado.
+ * Sesión del admin logueado.
  *
- * Estados:
- *   - loading: true mientras se verifica.
- *   - admin: { email, name, role } cuando hay sesión válida. null si no.
- *   - error: string si hubo error de red. null si todo OK.
+ * Fase 4: se apoya en la sesión de Supabase (AuthContext). Ya no hay
+ * magic link ni cookie propia: el admin se loguea como cualquier usuario
+ * y su rol en `usuarios` define si puede entrar al panel.
  *
- * Uso:
+ * Interfaz sin cambios:
  *   const { admin, loading, error, refetch, logout } = useAdminSession();
  *
- * Si `admin` es null y `loading` es false, no hay sesión → redirigir a login.
+ * admin: { id, email, name, role } si el usuario es admin/superadmin activo.
+ *        null en cualquier otro caso.
  */
 function useAdminSession() {
-  const [admin, setAdmin] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { user, profile, loading, profileLoading, signOut } = useAuthContext();
 
-  const fetchSession = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/.netlify/functions/admin-me', {
-        credentials: 'include',
-      });
-      if (res.status === 401) {
-        setAdmin(null);
-        setLoading(false);
-        return;
-      }
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
-      }
-      const data = await res.json();
-      setAdmin(data.admin);
-    } catch (err) {
-      console.error('[useAdminSession] error:', err);
-      setError(err.message || 'Error verificando sesión');
-      setAdmin(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Mientras se resuelve la sesión o el perfil, seguimos "cargando"
+  // para no redirigir antes de tiempo.
+  const resolving = loading || profileLoading || (!!user && !profile && profileLoading !== false);
 
-  useEffect(() => {
-    fetchSession();
-  }, [fetchSession]);
+  const isAdmin =
+    !!user &&
+    !!profile &&
+    profile.active !== false &&
+    ADMIN_ROLES.includes(profile.role);
+
+  const admin = isAdmin
+    ? {
+        id: profile.id,
+        email: profile.email,
+        name: `${profile.nombre || ''} ${profile.apellido || ''}`.trim() || profile.email,
+        role: profile.role,
+      }
+    : null;
 
   const logout = useCallback(async () => {
     try {
-      await fetch('/.netlify/functions/admin-logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await signOut();
     } catch (err) {
       console.error('[useAdminSession] logout error:', err);
     }
-    setAdmin(null);
-  }, []);
+  }, [signOut]);
 
-  return { admin, loading, error, refetch: fetchSession, logout };
+  // refetch se mantiene por compatibilidad: el perfil se refresca solo
+  // con los eventos de Supabase.
+  const refetch = useCallback(() => {}, []);
+
+  return { admin, loading: resolving, error: null, refetch, logout };
 }
 
 export default useAdminSession;

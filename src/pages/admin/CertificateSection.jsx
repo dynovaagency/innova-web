@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useState, useRef } from 'react';
 import { Award, Upload, Download, RefreshCw, CheckCircle } from 'lucide-react';
 import styles from './CertificateSection.module.css';
@@ -86,7 +87,7 @@ function CertificateSection({ payment, onSuccess }) {
 
       // El panel admin autentica con cookie de sesión (sistema actual).
       // No seteamos Content-Type: el navegador arma el boundary de multipart.
-      const res = await fetch('/.netlify/functions/admin-upload-certificate', {
+      const res = await adminFetch('/.netlify/functions/admin-upload-certificate', {
         method: 'POST',
         credentials: 'include',
         body: formData,
@@ -119,7 +120,7 @@ function CertificateSection({ payment, onSuccess }) {
   const handleDownload = async () => {
     setError(null);
     try {
-        const res = await fetch('/.netlify/functions/admin-certificate-download', {
+        const res = await adminFetch('/.netlify/functions/admin-certificate-download', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

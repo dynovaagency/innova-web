@@ -33,7 +33,6 @@ import CambiarContrasena from './pages/mi-cuenta/CambiarContrasena.jsx';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin.jsx';
-import AdminVerify from './pages/AdminVerify.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 import Capsulas from './pages/admin/Capsulas.jsx';
@@ -90,7 +89,6 @@ function App() {
 
       {/* Rutas de autenticación admin (sin layout público, sin layout admin) */}
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/verify" element={<AdminVerify />} />
 
       {/* Rutas del panel admin (con AdminLayout envolviendo) */}
     <Route path="/admin" element={<AdminLayout />}>

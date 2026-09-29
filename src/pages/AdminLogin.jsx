@@ -1,105 +1,102 @@
 import { useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { LogIn, LogOut, ShieldAlert, Lock } from 'lucide-react';
+import { useAuthContext } from '../context/AuthContext.jsx';
+import useAdminSession from '../hooks/useAdminSession.js';
+import LoginModal from '../components/auth/LoginModal.jsx';
 import styles from './AdminLogin.module.css';
 
 /**
- * /admin/login
+ * Acceso al panel de administración.
  *
- * Página de login para admins. Solo pide email; al submit dispara el envío
- * del magic link. El admin recibe el mail y clickea el link para completar
- * el login (redirige a /admin/verify con el token en el query string).
+ * Fase 4: ya no hay magic link. Los admins se loguean con su cuenta de
+ * Supabase (email + contraseña) y el rol en `usuarios` define el acceso.
  *
- * NO se muestra si el email está autorizado o no. Siempre muestra el mismo
- * mensaje "revisá tu inbox" — la única forma de saberlo es recibir el mail
- * y clickearlo. Es protección anti-enumeración.
+ * Casos:
+ *   - Admin logueado            → redirige a /admin.
+ *   - Logueado sin rol de admin → aviso + opciones.
+ *   - Sin sesión                → botón que abre el LoginModal.
  */
-
-const STATES = {
-  IDLE: 'idle',
-  LOADING: 'loading',
-  SENT: 'sent',
-  ERROR: 'error',
-};
-
 function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [state, setState] = useState(STATES.IDLE);
-  const [errorMsg, setErrorMsg] = useState('');
+  const { user } = useAuthContext();
+  const { admin, loading, logout } = useAdminSession();
+  const [loginOpen, setLoginOpen] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email || !email.includes('@')) {
-      setErrorMsg('Ingresá un email válido');
-      setState(STATES.ERROR);
-      return;
-    }
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.card}>
+          <div className={styles.spinner} aria-hidden="true" />
+          <p className={styles.text}>Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
 
-    setState(STATES.LOADING);
-    setErrorMsg('');
-
-    try {
-      const res = await fetch('/.netlify/functions/admin-request-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) throw new Error('No se pudo enviar el link');
-      setState(STATES.SENT);
-    } catch (err) {
-      console.error('[admin-login] error:', err);
-      setErrorMsg('No pudimos enviar el link. Probá de nuevo en unos minutos.');
-      setState(STATES.ERROR);
-    }
-  };
+  if (admin) {
+    return <Navigate to="/admin" replace />;
+  }
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Acceso al panel</h1>
-        <p className={styles.subtitle}>
-          Ingresá tu email. Te vamos a enviar un link para entrar.
-        </p>
+        <div className={styles.brand}>
+          <span className={styles.brandTitle}>INNOVA</span>
+          <span className={styles.brandSubtitle}>Panel de administración</span>
+        </div>
 
-        {state === STATES.SENT ? (
-          <div className={styles.successBox}>
-            <p className={styles.successTitle}>Revisá tu inbox</p>
-            <p className={styles.successBody}>
-              Si el email está autorizado, en un instante vas a recibir un link
-              para acceder al panel. El link vence en 15 minutos.
+        {user ? (
+          <>
+            <div className={`${styles.iconWrap} ${styles.iconWarning}`} aria-hidden="true">
+              <ShieldAlert size={32} />
+            </div>
+            <h1 className={styles.title}>Sin permisos de administración</h1>
+            <p className={styles.text}>
+              La cuenta <strong>{user.email}</strong> no tiene acceso al panel.
+              Si creés que es un error, contactá a un administrador.
             </p>
-            <p className={styles.successHint}>
-              ¿No lo ves? Chequeá también la carpeta de spam.
-            </p>
-          </div>
+            <div className={styles.actions}>
+              <Link to="/" className={styles.secondaryBtn}>
+                Volver al sitio
+              </Link>
+              <button type="button" onClick={logout} className={styles.primaryBtn}>
+                <LogOut size={16} aria-hidden="true" />
+                Ingresar con otra cuenta
+              </button>
+            </div>
+          </>
         ) : (
-          <form onSubmit={handleSubmit} className={styles.form}>
-            <label className={styles.field}>
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@innovatrabajosocial.com.ar"
-                disabled={state === STATES.LOADING}
-                autoFocus
-              />
-            </label>
-
-            {errorMsg && (
-              <div className={styles.errorBox} role="alert">
-                {errorMsg}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className={styles.submitBtn}
-              disabled={state === STATES.LOADING}
-            >
-              {state === STATES.LOADING ? 'Enviando link...' : 'Enviarme el link'}
-            </button>
-          </form>
+          <>
+            <div className={styles.iconWrap} aria-hidden="true">
+              <Lock size={32} />
+            </div>
+            <h1 className={styles.title}>Ingresá al panel</h1>
+            <p className={styles.text}>
+              Usá tu cuenta de Innova (email y contraseña).
+            </p>
+            <p className={styles.hint}>
+              ¿Es tu primera vez o no recordás tu contraseña? En la ventana de ingreso
+              elegí <strong>"¿Olvidaste tu contraseña?"</strong> y te enviamos un link
+              para crearla.
+            </p>
+            <div className={styles.actions}>
+              <Link to="/" className={styles.secondaryBtn}>
+                Volver al sitio
+              </Link>
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className={styles.primaryBtn}
+              >
+                <LogIn size={16} aria-hidden="true" />
+                Iniciar sesión
+              </button>
+            </div>
+          </>
         )}
       </div>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import PageHeader from '../../components/admin/PageHeader.jsx';
 import LoadingState from '../../components/admin/LoadingState.jsx';
@@ -29,7 +30,7 @@ function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/.netlify/functions/admin-dashboard-stats', {
+      const res = await adminFetch('/.netlify/functions/admin-dashboard-stats', {
         credentials: 'include',
       });
       if (!res.ok) {

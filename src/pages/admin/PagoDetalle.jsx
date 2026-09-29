@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Copy, ExternalLink, CheckCircle, Trash2 } from 'lucide-react';
@@ -56,7 +57,7 @@ function PagoDetalle() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-payment-get?ref=${encodeURIComponent(externalReference)}`,
         { credentials: 'include' }
       );
@@ -83,7 +84,7 @@ function PagoDetalle() {
   const handleResendConfirm = async () => {
     setConfirmResend((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch('/.netlify/functions/admin-payment-resend-email', {
+      const res = await adminFetch('/.netlify/functions/admin-payment-resend-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -109,7 +110,7 @@ function PagoDetalle() {
   const handleApproveConfirm = async () => {
     setConfirmApprove((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch('/.netlify/functions/admin-payment-mark-approved', {
+      const res = await adminFetch('/.netlify/functions/admin-payment-mark-approved', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -137,7 +138,7 @@ function PagoDetalle() {
   const handleDeleteConfirm = async () => {
     setConfirmDelete((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch('/.netlify/functions/admin-payment-delete', {
+      const res = await adminFetch('/.netlify/functions/admin-payment-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

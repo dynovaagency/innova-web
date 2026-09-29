@@ -1,3 +1,4 @@
+import { adminFetch } from '../../lib/adminFetch.js';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Power } from 'lucide-react';
@@ -30,7 +31,7 @@ function CuponDetalle() {
   const fetchCoupon = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch(
+      const res = await adminFetch(
         `/.netlify/functions/admin-coupon-get?id=${encodeURIComponent(id)}`,
         { credentials: 'include' }
       );
@@ -66,7 +67,7 @@ function CuponDetalle() {
   const handleToggleConfirm = async () => {
     setConfirmToggle((prev) => ({ ...prev, loading: true }));
     try {
-      const res = await fetch('/.netlify/functions/admin-coupon-toggle-active', {
+      const res = await adminFetch('/.netlify/functions/admin-coupon-toggle-active', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
