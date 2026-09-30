@@ -173,7 +173,7 @@
 
 .servicesGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-xl);
 }
 
@@ -192,8 +192,8 @@
   box-shadow: var(--shadow-md);
 }
 
-/* La 4ta card (Biblioteca) solo se muestra en mobile. En desktop quedan
-   visibles únicamente Cápsula, Supervisiones y Formaciones. */
+/* La card de Biblioteca solo se muestra en mobile. En desktop quedan
+   visibles Cápsulas, Cursos, Supervisiones y Formaciones. */
 .serviceCardMobileOnly {
   display: none;
 }
@@ -471,6 +471,12 @@
 /* =====================================================
    RESPONSIVE
 ===================================================== */
+@media (max-width: 1280px) {
+  .servicesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .hero {
     grid-template-columns: 1fr;

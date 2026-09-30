@@ -158,8 +158,10 @@ function Navbar() {
                     aria-haspopup="true"
                     aria-expanded={userMenuOpen}
                   >
-                    <UserCircle size={18} aria-hidden="true" />
-                    {(profile?.role === 'admin' || profile?.role === 'superadmin') ? 'Mi cuenta' : 'Tu Perfil'}
+                  <UserCircle size={18} aria-hidden="true" />
+                    <span className={styles.authLabel}>
+                      {(profile?.role === 'admin' || profile?.role === 'superadmin') ? 'Mi cuenta' : 'Tu Perfil'}
+                    </span>
                     <ChevronDown
                       size={14}
                       aria-hidden="true"
@@ -182,7 +184,7 @@ function Navbar() {
                         className={styles.userDropdownItem}
                         role="menuitem"
                       >
-                        <UserCircle size={16} aria-hidden="true" />
+                      <UserCircle size={16} aria-hidden="true" />
                         {(profile?.role === 'admin' || profile?.role === 'superadmin') ? 'Ir al panel admin' : 'Ir a mi cuenta'}
                       </button>
                       <button
@@ -203,8 +205,8 @@ function Navbar() {
                   onClick={() => setLoginOpen(true)}
                   className={styles.authBtn}
                 >
-                  <LogIn size={18} aria-hidden="true" />
-                  Ingresar
+                <LogIn size={18} aria-hidden="true" />
+                  <span className={styles.authLabel}>Ingresar</span>
                 </button>
               )
             )}

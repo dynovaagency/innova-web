@@ -312,3 +312,35 @@
   background-color: var(--color-accent-soft);
   color: var(--color-accent);
 }
+
+/* ---------- Mobile: botón de cuenta solo con ícono ---------- */
+@media (max-width: 768px) {
+  .actions {
+    gap: var(--space-xs);
+    flex-shrink: 0;
+  }
+
+  .inscripcionBtn {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .authBtn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .authLabel,
+  .authBtn .chevron,
+  .authBtn .chevronOpen {
+    display: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .brandTagline {
+    display: none;
+  }
+}
