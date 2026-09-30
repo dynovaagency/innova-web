@@ -22,9 +22,15 @@ import styles from './CambiarContrasena.module.css';
  * hacemos el workaround del signIn temporal. Como el usuario ya tiene
  * sesión, no lo desloguea — solo confirma que la password es correcta.
  */
-function CambiarContrasena() {
+/**
+ * Props opcionales (uso embebido, por ejemplo en el panel admin):
+ *   email:     email de la cuenta. Si no viene, se toma del contexto del layout.
+ *   onSuccess: si viene, se llama al terminar en vez de redirigir a /mi-cuenta.
+ */
+function CambiarContrasena({ email: emailProp, onSuccess } = {}) {
   const navigate = useNavigate();
-  const { profile } = useOutletContext();
+  const outletContext = useOutletContext() || {};
+  const email = emailProp || outletContext.profile?.email || outletContext.admin?.email;
 
   const [current, setCurrent] = useState('');
   const [newPass, setNewPass] = useState('');
@@ -72,8 +78,12 @@ function CambiarContrasena() {
     setError('');
     try {
       // Paso 1: verificar contraseña actual con signIn
+      if (!email) {
+        throw new Error('No pudimos identificar tu cuenta. Refrescá la página e intentá de nuevo.');
+      }
+
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: profile.email,
+        email,
         password: current,
       });
       if (signInError) {
@@ -86,7 +96,18 @@ function CambiarContrasena() {
       });
       if (updateError) throw updateError;
 
-      // Éxito: redirect al dashboard con state para mostrar mensaje
+      if (onSuccess) {
+        // Uso embebido (panel admin): limpiamos el formulario y avisamos al padre.
+        setCurrent('');
+        setNewPass('');
+        setConfirm('');
+        setTouched({});
+        setLoading(false);
+        onSuccess();
+        return;
+      }
+
+      // Uso normal (panel de alumno): redirect al dashboard con mensaje.
       navigate('/mi-cuenta', {
         state: { passwordChanged: true },
         replace: true,
@@ -97,6 +118,8 @@ function CambiarContrasena() {
         setError('La contraseña actual es incorrecta.');
       } else if (String(err.message).toLowerCase().includes('should be different')) {
         setError('La nueva contraseña debe ser diferente a la actual.');
+      } else if (String(err.message).startsWith('No pudimos identificar')) {
+        setError(err.message);
       } else {
         setError('No pudimos cambiar tu contraseña. Intentá de nuevo.');
       }
