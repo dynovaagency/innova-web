@@ -3,6 +3,7 @@ import PageHeader from '../../components/admin/PageHeader.jsx';
 import Toast from '../../components/admin/Toast.jsx';
 import useToast from '../../hooks/useToast.js';
 import CambiarContrasena from '../mi-cuenta/CambiarContrasena.jsx';
+import DatosFacturacion from './DatosFacturacion.jsx';
 import styles from './Configuracion.module.css';
 
 const ROLE_LABELS = {
@@ -15,6 +16,8 @@ const ROLE_LABELS = {
  *
  * - Mi cuenta: datos del admin logueado.
  * - Cambiar contraseña: reutiliza el mismo formulario del panel de alumnos.
+ * - Datos de facturación: datos fiscales y certificado de ARCA del admin,
+ *   para los que emiten facturas a su nombre.
  */
 function Configuracion() {
   const { admin } = useOutletContext() || {};
@@ -24,7 +27,7 @@ function Configuracion() {
     <>
       <PageHeader
         title="Configuración"
-        subtitle="Datos de tu cuenta y seguridad del acceso al panel."
+        subtitle="Datos de tu cuenta, seguridad del acceso y facturación."
       />
 
       <div className={styles.page}>
@@ -58,6 +61,8 @@ function Configuracion() {
             )
           }
         />
+
+        <DatosFacturacion toast={toast} />
       </div>
 
       <Toast {...toast.props} />

@@ -9,6 +9,7 @@
  *     category, duration, featured, imageUrl, contentType, contentUrl,
  *     modalidad,
  *     priceTransferencia, priceGocuotas, gocuotasUrl  ← Sprint 2.7
+ *     emisorId                                        ← Facturación
  *   }
  *
  * Los 3 campos nuevos son opcionales:
@@ -17,12 +18,17 @@
  *   - gocuotasUrl: link específico de Go Cuotas para este producto.
  *
  * Si vienen null o vacíos, se guardan como null (no se aplica precio específico).
+ *
+ * emisorId (opcional): id del emisor que factura este producto. Si viene
+ * null o vacío, factura el emisor por defecto. Se valida que exista y
+ * esté activo.
  */
 
 import { ok, error, preflight } from './_lib/config.js';
 import { requireAdmin } from './_lib/auth/middleware.js';
 import * as productsRepo from './_lib/repositories/products.js';
 import { validateProduct } from './_lib/products/schema.js';
+import { findEmisorById } from './_lib/fiscal.js';
 
 const normalizeSlug = (raw) => {
   if (typeof raw !== 'string') return '';
@@ -88,6 +94,8 @@ export const handler = async (event) => {
     priceTransferencia: parseOptionalPrice(payload.priceTransferencia),
     priceGocuotas: parseOptionalPrice(payload.priceGocuotas),
     gocuotasUrl: parseOptionalUrl(payload.gocuotasUrl),
+    // Facturación: quién factura este producto (null = emisor por defecto)
+    emisorId: payload.emisorId ? String(payload.emisorId).trim() : null,
   };
 
   const validation = validateProduct(productData);
@@ -98,6 +106,15 @@ export const handler = async (event) => {
   }
 
   try {
+    if (productData.emisorId) {
+      const emisor = await findEmisorById(productData.emisorId);
+      if (!emisor || !emisor.active) {
+        return error(400, 'Datos de producto inválidos', {
+          validation: ['emisorId: El emisor elegido no existe o está inactivo.'],
+        });
+      }
+    }
+
     const existing = await productsRepo.findBySlug(slug, { activeOnly: false });
     const created = !existing;
 

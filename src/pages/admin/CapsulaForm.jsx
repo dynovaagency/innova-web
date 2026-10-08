@@ -66,6 +66,7 @@ const emptyForm = {
   priceTransferencia: '',
   priceGocuotas: '',
   gocuotasUrl: '',
+  emisorId: '',
 };
 
 const isValidSlug = (slug) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);
@@ -89,6 +90,7 @@ function CapsulaForm() {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [emisores, setEmisores] = useState([]);
 
   const fetchProduct = useCallback(async () => {
     if (!isEditing) return;
@@ -125,6 +127,7 @@ function CapsulaForm() {
         priceTransferencia: p.priceTransferencia ? String(p.priceTransferencia) : '',
         priceGocuotas: p.priceGocuotas ? String(p.priceGocuotas) : '',
         gocuotasUrl: p.gocuotasUrl || '',
+        emisorId: p.emisorId || '',
       });
     } catch (err) {
       console.error('[CapsulaForm] fetch error:', err);
@@ -137,6 +140,23 @@ function CapsulaForm() {
   useEffect(() => {
     fetchProduct();
   }, [fetchProduct]);
+
+  // Emisores disponibles para el selector "Factura a nombre de".
+  // Si falla, el formulario sigue funcionando con el emisor por defecto.
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch('/.netlify/functions/admin-emisores-list')
+      .then((res) => (res.ok ? res.json() : { emisores: [] }))
+      .then((data) => {
+        if (!cancelled) setEmisores(data.emisores || []);
+      })
+      .catch((err) => console.error('[CapsulaForm] emisores error:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const defaultEmisor = emisores.find((em) => em.isDefault);
 
   const handleChange = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -207,6 +227,7 @@ function CapsulaForm() {
           price: Number(form.price),
           priceTransferencia: form.priceTransferencia ? Number(form.priceTransferencia) : null,
           priceGocuotas: form.priceGocuotas ? Number(form.priceGocuotas) : null,
+          emisorId: form.emisorId || null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -626,7 +647,41 @@ function CapsulaForm() {
           </div>
         </fieldset>
 
-        {/* Bloque 6: Publicación */}
+        {/* Bloque 6: Facturación */}
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.legend}>Facturación</legend>
+
+          <div className={styles.field}>
+            <label htmlFor="emisorId" className={styles.label}>Factura a nombre de</label>
+            <select
+              id="emisorId"
+              value={form.emisorId}
+              onChange={handleChange('emisorId')}
+              className={fieldErrors.emisorId ? styles.inputError : styles.input}
+              disabled={saving}
+              aria-describedby="emisorId-hint"
+            >
+              <option value="">
+                {defaultEmisor
+                  ? `Emisor por defecto (${defaultEmisor.razonSocial})`
+                  : 'Emisor por defecto'}
+              </option>
+              {emisores.map((em) => (
+                <option key={em.id} value={em.id}>
+                  {em.razonSocial}{em.ready ? '' : ' — datos incompletos'}
+                </option>
+              ))}
+            </select>
+            <span id="emisorId-hint" className={styles.hint}>
+              {emisores.length === 0
+                ? 'Todavía nadie cargó sus datos de facturación. Se cargan desde Configuración.'
+                : 'Las ventas de este producto se facturan a nombre de esta persona. El cambio aplica a las ventas nuevas.'}
+            </span>
+            {fieldErrors.emisorId && <span className={styles.errorText}>{fieldErrors.emisorId}</span>}
+          </div>
+        </fieldset>
+
+        {/* Bloque 7: Publicación */}
         <fieldset className={styles.fieldset}>
           <legend className={styles.legend}>Publicación</legend>
 

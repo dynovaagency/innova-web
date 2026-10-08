@@ -11,6 +11,8 @@
  *   - Precios por método de pago (Sprint 2.7): priceTransferencia,
  *     priceGocuotas, gocuotasUrl. Todos opcionales. Si vienen, sobreescriben
  *     el precio base para ese método específico.
+ *   - Emisor de la factura (módulo de facturación): emisorId. Opcional.
+ *     Si no viene, factura el emisor por defecto.
  *
  * validateProduct(product) devuelve { valid, errors }.
  * Si valid es false, errors es un array de strings describiendo problemas.
@@ -29,6 +31,8 @@ const COMMON_REQUIRED_FIELDS = [
   'slug', 'type', 'title', 'price', 'currency', 'active',
   'category', 'duration', 'contentType', 'contentUrl',
 ];
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const isValidUrl = (url) => {
   if (typeof url !== 'string' || !url.trim()) return false;
@@ -129,6 +133,13 @@ export const validateProduct = (product) => {
     errors.push('gocuotasUrl debe empezar con http:// o https://');
   }
 
+  // emisorId (opcional): quién factura este producto. null = emisor por defecto.
+  if (product.emisorId !== undefined && product.emisorId !== null && product.emisorId !== '') {
+    if (!UUID_REGEX.test(String(product.emisorId))) {
+      errors.push('emisorId no es válido');
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,
@@ -153,4 +164,5 @@ export const emptyProduct = (type = PRODUCT_TYPES.CAPSULA_GENIALLY) => ({
   priceTransferencia: null,
   priceGocuotas: null,
   gocuotasUrl: '',
+  emisorId: null,
 });
