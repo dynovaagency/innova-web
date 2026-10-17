@@ -12,6 +12,7 @@ import useToast from '../../hooks/useToast.js';
 import useAdminSession from '../../hooks/useAdminSession.js';
 import { formatCurrency, formatDateTime } from '../../lib/format.js';
 import CertificateSection from './CertificateSection.jsx';
+import FacturaSection from './FacturaSection.jsx';
 import styles from './PagoDetalle.module.css';
 
 /**
@@ -23,6 +24,7 @@ import styles from './PagoDetalle.module.css';
  *   - Historial de emails (envío automático + reenvíos manuales).
  *   - Provider metadata (para debug avanzado).
  *   - Certificado del alumno (subir / reemplazar / descargar).
+ *   - Factura electrónica (ver, cambiar emisor, emitir, anular).
  *   - Acción "Reenviar mail" (solo si status === approved).
  */
 
@@ -490,7 +492,10 @@ function PagoDetalle() {
         )}
       </div>
 
-      {/* Bloque 6: Certificado (ancho completo, fuera del grid) */}
+      {/* Bloque 6: Factura electrónica (ancho completo, fuera del grid) */}
+      <FacturaSection key={payment.status} payment={payment} toast={toast} />
+
+      {/* Bloque 7: Certificado (ancho completo, fuera del grid) */}
       <CertificateSection payment={payment} onSuccess={fetchPayment} />
 
       <ConfirmDialog

@@ -15,6 +15,7 @@
  *     al usuario cuando el pago esté aprobado (representa una venta real).
  *   - Loggea la eliminación con el admin que la hizo y los datos del
  *     pago borrado para auditoría (aparece en Netlify Function logs).
+ *   - Descarta las facturas del pago que todavía no llegaron a ARCA.
  *   - No es idempotente: si el ref no existe, devuelve 404.
  *
  * Response:
@@ -26,6 +27,7 @@
 import { ok, error, preflight } from './_lib/config.js';
 import { requireAdmin } from './_lib/auth/middleware.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
+import { discardPendingForPayments } from './_lib/facturas.js';
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight();
@@ -66,6 +68,14 @@ export const handler = async (event) => {
         createdAt: result.payment.createdAt,
       },
     });
+
+    // Las facturas que todavía no llegaron a ARCA se descartan: el pago ya
+    // no existe. Un error acá no deshace la eliminación del pago.
+    try {
+      await discardPendingForPayments([ref]);
+    } catch (err) {
+      console.error('[admin-payment-delete] no se pudieron descartar las facturas pendientes:', err);
+    }
 
     return ok({
       deleted: true,

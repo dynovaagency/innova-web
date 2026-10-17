@@ -15,6 +15,7 @@
  *   - Cada eliminación se loggea con el admin y un snapshot del pago,
  *     para auditoría (Netlify Function logs).
  *   - Si un pago falla o no existe, sigue con el resto y lo informa.
+ *   - Descarta las facturas de esos pagos que todavía no llegaron a ARCA.
  *
  * Response:
  *   200 { deleted: string[], notFound: string[], failed: string[] }
@@ -23,6 +24,7 @@
 import { ok, error, preflight } from './_lib/config.js';
 import { requireAdmin } from './_lib/auth/middleware.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
+import { discardPendingForPayments } from './_lib/facturas.js';
 
 const MAX_REFS = 100;
 
@@ -77,6 +79,16 @@ export const handler = async (event) => {
     } catch (err) {
       console.error('[admin-payments-bulk-delete] error eliminando', ref, err);
       failed.push(ref);
+    }
+  }
+
+  // Las facturas que todavía no llegaron a ARCA se descartan: el pago ya
+  // no existe. Un error acá no deshace la eliminación de los pagos.
+  if (deleted.length > 0) {
+    try {
+      await discardPendingForPayments(deleted);
+    } catch (err) {
+      console.error('[admin-payments-bulk-delete] no se pudieron descartar las facturas pendientes:', err);
     }
   }
 
