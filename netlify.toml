@@ -10,6 +10,10 @@
 [functions]
   node_bundler = "esbuild"
 
+# Facturación: emite las facturas pendientes cada 15 minutos.
+[functions."invoices-process"]
+  schedule = "*/15 * * * *"
+
 # Redirect 301 — la ruta vieja de la cápsula (single) fue reemplazada por
 # el listado dinámico. Cualquier link viejo (bookmark, mail histórico,
 # Google) llega ahora a la cápsula específica.

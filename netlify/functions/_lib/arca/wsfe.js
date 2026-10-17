@@ -1,9 +1,11 @@
 /**
  * WSFEv1 — Factura electrónica de ARCA (comprobantes sin detalle de ítems).
  *
- * Este módulo expone las consultas que necesitamos para verificar la
- * conexión y para numerar comprobantes. La emisión (FECAESolicitar) se
- * suma en el paso siguiente.
+ * Este módulo expone:
+ *   - Consultas para verificar la conexión y numerar comprobantes.
+ *   - solicitarCAE: emisión de un comprobante (FECAESolicitar).
+ *   - consultarComprobante: lectura de un comprobante ya emitido, para
+ *     recuperarnos si se cortó la conexión justo después de emitir.
  *
  * Tipos de comprobante (códigos de ARCA):
  *   Factura A = 1, Nota de crédito A = 3
@@ -121,4 +123,152 @@ export const getUltimoComprobante = async (auth, { puntoVenta, cbteTipo }) => {
   const errors = parseErrors(xml);
   const nro = getTag(xml, 'CbteNro');
   return { numero: nro === null ? null : Number(nro), errors };
+};
+
+// ---------------------------------------------------------------------
+// Emisión
+// ---------------------------------------------------------------------
+
+/** Tipos de documento del receptor (códigos de ARCA). */
+export const DOC_TIPOS = Object.freeze({
+  CUIT: 80,
+  CUIL: 86,
+  DNI: 96,
+  SIN_IDENTIFICAR: 99,
+});
+
+/** Condición frente al IVA del receptor (RG 5616). 5 = Consumidor final. */
+export const CONDICION_IVA_CONSUMIDOR_FINAL = 5;
+
+/** Concepto 2 = Servicios (cursos y cápsulas). */
+const CONCEPTO_SERVICIOS = 2;
+
+const money = (n) => Number(n).toFixed(2);
+
+/** Date → 'yyyymmdd' en hora argentina. */
+export const toArcaDate = (date) => {
+  const local = new Date(new Date(date).getTime() - 3 * 60 * 60 * 1000);
+  return local.toISOString().slice(0, 10).replace(/-/g, '');
+};
+
+/** 'yyyymmdd' → 'yyyy-mm-dd'. */
+export const fromArcaDate = (s) =>
+  s && /^\d{8}$/.test(s) ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}` : null;
+
+const parseObservaciones = (xml) => {
+  const block = getTag(xml, 'Observaciones');
+  if (!block) return [];
+  return getAllTags(block, 'Obs').map((o) => ({
+    code: Number(getTag(o, 'Code')),
+    msg: getTag(o, 'Msg'),
+  }));
+};
+
+/**
+ * Pide el CAE para un comprobante.
+ *
+ * @param {object} auth  { token, sign, cuit }
+ * @param {object} c
+ *   puntoVenta, cbteTipo, numero,
+ *   fecha (Date), fechaServicio (Date),
+ *   importeTotal, importeNeto, importeIva (solo B),
+ *   docTipo, docNro,
+ *   asociado?: { cbteTipo, puntoVenta, numero, cuit, fecha (Date) }  ← notas de crédito
+ *
+ * @returns {Promise<{ resultado: 'A'|'R'|'P', cae, caeVto, errors, observaciones }>}
+ */
+export const solicitarCAE = async (auth, c) => {
+  const cbteFch = toArcaDate(c.fecha);
+  const servicio = toArcaDate(c.fechaServicio || c.fecha);
+  const conIva = c.importeIva !== undefined && c.importeIva !== null && Number(c.importeIva) > 0;
+
+  const asociado = c.asociado
+    ? '<ar:CbtesAsoc><ar:CbteAsoc>' +
+      `<ar:Tipo>${Number(c.asociado.cbteTipo)}</ar:Tipo>` +
+      `<ar:PtoVta>${Number(c.asociado.puntoVenta)}</ar:PtoVta>` +
+      `<ar:Nro>${Number(c.asociado.numero)}</ar:Nro>` +
+      `<ar:Cuit>${escapeXml(c.asociado.cuit)}</ar:Cuit>` +
+      `<ar:CbteFch>${toArcaDate(c.asociado.fecha)}</ar:CbteFch>` +
+      '</ar:CbteAsoc></ar:CbtesAsoc>'
+    : '';
+
+  const iva = conIva
+    ? '<ar:Iva><ar:AlicIva>' +
+      '<ar:Id>5</ar:Id>' + // 21 %
+      `<ar:BaseImp>${money(c.importeNeto)}</ar:BaseImp>` +
+      `<ar:Importe>${money(c.importeIva)}</ar:Importe>` +
+      '</ar:AlicIva></ar:Iva>'
+    : '';
+
+  const detalle =
+    '<ar:FECAEDetRequest>' +
+    `<ar:Concepto>${CONCEPTO_SERVICIOS}</ar:Concepto>` +
+    `<ar:DocTipo>${Number(c.docTipo)}</ar:DocTipo>` +
+    `<ar:DocNro>${escapeXml(c.docNro || '0')}</ar:DocNro>` +
+    `<ar:CbteDesde>${Number(c.numero)}</ar:CbteDesde>` +
+    `<ar:CbteHasta>${Number(c.numero)}</ar:CbteHasta>` +
+    `<ar:CbteFch>${cbteFch}</ar:CbteFch>` +
+    `<ar:ImpTotal>${money(c.importeTotal)}</ar:ImpTotal>` +
+    '<ar:ImpTotConc>0.00</ar:ImpTotConc>' +
+    `<ar:ImpNeto>${money(conIva ? c.importeNeto : c.importeTotal)}</ar:ImpNeto>` +
+    '<ar:ImpOpEx>0.00</ar:ImpOpEx>' +
+    '<ar:ImpTrib>0.00</ar:ImpTrib>' +
+    `<ar:ImpIVA>${money(conIva ? c.importeIva : 0)}</ar:ImpIVA>` +
+    `<ar:FchServDesde>${servicio}</ar:FchServDesde>` +
+    `<ar:FchServHasta>${servicio}</ar:FchServHasta>` +
+    `<ar:FchVtoPago>${cbteFch}</ar:FchVtoPago>` +
+    '<ar:MonId>PES</ar:MonId>' +
+    '<ar:MonCotiz>1</ar:MonCotiz>' +
+    `<ar:CondicionIVAReceptorId>${CONDICION_IVA_CONSUMIDOR_FINAL}</ar:CondicionIVAReceptorId>` +
+    asociado +
+    iva +
+    '</ar:FECAEDetRequest>';
+
+  const xml = await call(
+    'FECAESolicitar',
+    authXml(auth) +
+      '<ar:FeCAEReq>' +
+      '<ar:FeCabReq>' +
+      '<ar:CantReg>1</ar:CantReg>' +
+      `<ar:PtoVta>${Number(c.puntoVenta)}</ar:PtoVta>` +
+      `<ar:CbteTipo>${Number(c.cbteTipo)}</ar:CbteTipo>` +
+      '</ar:FeCabReq>' +
+      `<ar:FeDetReq>${detalle}</ar:FeDetReq>` +
+      '</ar:FeCAEReq>'
+  );
+
+  const det = getTag(xml, 'FECAEDetResponse') || '';
+  return {
+    resultado: getTag(det, 'Resultado') || getTag(xml, 'Resultado'),
+    cae: getTag(det, 'CAE') || null,
+    caeVto: fromArcaDate(getTag(det, 'CAEFchVto')),
+    errors: parseErrors(xml),
+    observaciones: parseObservaciones(det),
+  };
+};
+
+/**
+ * Consulta un comprobante ya emitido. Devuelve null si no existe.
+ * Sirve para recuperar el CAE si la emisión se cortó a mitad de camino.
+ */
+export const consultarComprobante = async (auth, { cbteTipo, puntoVenta, numero }) => {
+  const xml = await call(
+    'FECompConsultar',
+    authXml(auth) +
+      '<ar:FeCompConsReq>' +
+      `<ar:CbteTipo>${Number(cbteTipo)}</ar:CbteTipo>` +
+      `<ar:CbteNro>${Number(numero)}</ar:CbteNro>` +
+      `<ar:PtoVta>${Number(puntoVenta)}</ar:PtoVta>` +
+      '</ar:FeCompConsReq>'
+  );
+  const result = getTag(xml, 'ResultGet');
+  if (!result) return null;
+  return {
+    cae: getTag(result, 'CodAutorizacion'),
+    caeVto: fromArcaDate(getTag(result, 'FchVto')),
+    fecha: fromArcaDate(getTag(result, 'CbteFch')),
+    importeTotal: Number(getTag(result, 'ImpTotal')),
+    docNro: getTag(result, 'DocNro'),
+    resultado: getTag(result, 'Resultado'),
+  };
 };
