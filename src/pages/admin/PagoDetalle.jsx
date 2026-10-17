@@ -1,6 +1,6 @@
 import { adminFetch } from '../../lib/adminFetch.js';
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Mail, Copy, ExternalLink, CheckCircle, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/admin/PageHeader.jsx';
 import LoadingState from '../../components/admin/LoadingState.jsx';
@@ -41,6 +41,10 @@ const statusLabel = {
 function PagoDetalle() {
   const { externalReference } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Volver al listado conservando los filtros y la página desde donde se entró.
+  const listSearch = location.state?.listSearch;
+  const listUrl = listSearch ? `/admin/pagos?${listSearch}` : '/admin/pagos';
   const toast = useToast();
 
   const [payment, setPayment] = useState(null);
@@ -150,7 +154,7 @@ function PagoDetalle() {
       }
       toast.success('Pago eliminado', 'El registro se eliminó del sistema.');
       // Redirigimos al listado después de eliminar.
-      setTimeout(() => navigate('/admin/pagos'), 1200);
+      setTimeout(() => navigate(listUrl), 1200);
     } catch (err) {
       console.error('[PagoDetalle] delete error:', err);
       toast.error('No se pudo eliminar', err.message);
@@ -170,7 +174,7 @@ function PagoDetalle() {
   if (loading && !payment) {
     return (
       <>
-        <Link to="/admin/pagos" className={styles.backLink}>
+        <Link to={listUrl} className={styles.backLink}>
           <ArrowLeft size={16} aria-hidden="true" />
           Volver al listado
         </Link>
@@ -183,7 +187,7 @@ function PagoDetalle() {
   if (error) {
     return (
       <>
-        <Link to="/admin/pagos" className={styles.backLink}>
+        <Link to={listUrl} className={styles.backLink}>
           <ArrowLeft size={16} aria-hidden="true" />
           Volver al listado
         </Link>
@@ -191,7 +195,7 @@ function PagoDetalle() {
         <ErrorState
           title="Pago no encontrado"
           message={error}
-          action={{ label: 'Volver al listado', onClick: () => navigate('/admin/pagos') }}
+          action={{ label: 'Volver al listado', onClick: () => navigate(listUrl) }}
         />
       </>
     );
@@ -203,11 +207,11 @@ function PagoDetalle() {
   // Sprint 2.8: cualquier pago pending con email puede aprobarse manualmente.
   // Para MP es un fallback si el webhook no llegó todavía.
   const canApprove = payment.status === 'pending' && !!payment.buyerEmail;
-  const canDelete = currentAdmin?.role === 'superadmin';
+  const canDelete = ['admin', 'superadmin'].includes(currentAdmin?.role);
 
   return (
     <>
-      <Link to="/admin/pagos" className={styles.backLink}>
+      <Link to={listUrl} className={styles.backLink}>
         <ArrowLeft size={16} aria-hidden="true" />
         Volver al listado
       </Link>

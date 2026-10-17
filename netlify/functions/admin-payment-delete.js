@@ -7,8 +7,8 @@
  *   { ref: string }  ← externalReference del pago a eliminar.
  *
  * Autorización:
- *   Solo superadmins (role === 'superadmin'). Los admins normales no
- *   pueden eliminar pagos.
+ *   Cualquier admin o superadmin (requireAdmin). Cada eliminación queda
+ *   registrada en los logs con el email de quien la hizo.
  *
  * Comportamiento:
  *   - Elimina cualquier pago, sin importar status. La UI debe advertir
@@ -20,7 +20,6 @@
  * Response:
  *   200 { deleted: true, ref: string }
  *   401 si no hay sesión válida
- *   403 si el admin no es superadmin
  *   404 si el pago no existe
  */
 
@@ -34,13 +33,6 @@ export const handler = async (event) => {
 
   const auth = await requireAdmin(event);
   if (auth.error) return auth.response;
-
-  // Restricción: solo superadmins pueden eliminar pagos.
-  if (auth.admin.role !== 'superadmin') {
-    return error(403, 'Solo los superadmins pueden eliminar pagos', {
-      currentRole: auth.admin.role,
-    });
-  }
 
   let payload;
   try {

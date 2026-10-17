@@ -30,6 +30,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Datos locales de netlify dev
+.mock-db/
+
 # OS
 Thumbs.db
 

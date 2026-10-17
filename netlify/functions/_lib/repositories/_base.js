@@ -13,13 +13,16 @@ import { getStore } from '@netlify/blobs';
 import { IS_LOCAL_DEV } from '../config.js';
 
 // Path del "store" local para desarrollo con netlify dev.
+//
+// Usamos process.cwd() (la raíz del proyecto, desde donde corre
+// `netlify dev`) en vez de import.meta.url: Netlify empaqueta las
+// functions en formato CommonJS, donde import.meta queda vacío y
+// fileURLToPath() tiraba error 500 en todas las functions que usan Blobs.
 let _localDbDir = null;
 const getLocalDbDir = async () => {
   if (_localDbDir) return _localDbDir;
-  const { fileURLToPath } = await import('node:url');
   const path = await import('node:path');
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  _localDbDir = path.resolve(__dirname, '../../.mock-db');
+  _localDbDir = path.resolve(process.cwd(), '.mock-db');
   return _localDbDir;
 };
 
