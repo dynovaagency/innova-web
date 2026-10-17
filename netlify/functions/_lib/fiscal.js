@@ -104,7 +104,7 @@ export const decryptSecret = (payload) => {
 const toAscii = (text) =>
   String(text || '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^A-Za-z0-9 .-]/g, '')
     .trim();
 
@@ -178,9 +178,34 @@ export const inspectCertificate = ({ certPem, privateKeyPem, cuit }) => {
   return { valid: true, expiresAt: expiresAt.toISOString() };
 };
 
+/**
+ * Huella corta del certificado. Sirve para saber si datos guardados (el
+ * ticket de acceso de ARCA, la última prueba de conexión) corresponden
+ * al certificado actual o a uno anterior.
+ */
+export const certFingerprint = (certPem) =>
+  certPem
+    ? crypto.createHash('sha256').update(String(certPem).trim()).digest('hex').slice(0, 16)
+    : null;
+
 // ---------------------------------------------------------------------
 // Estado y mapeo a la API
 // ---------------------------------------------------------------------
+
+/**
+ * Resultado de la última prueba de conexión con ARCA, solo si sigue
+ * aplicando: mismo certificado, mismo punto de venta y mismo ambiente.
+ * Si algo de eso cambió, la prueba quedó vieja y se ignora.
+ */
+const currentArcaCheck = (row) => {
+  const check = row.arca_check;
+  if (!check || !row.cert_pem) return null;
+  const applies =
+    check.certFp === certFingerprint(row.cert_pem) &&
+    check.puntoVenta === row.punto_venta &&
+    check.env === ARCA_ENV;
+  return applies ? check : null;
+};
 
 const FIELD_LABELS = {
   razon_social: 'Nombre o razón social',
@@ -235,6 +260,10 @@ export const toApiEmisor = (row, { includeCsr = false } = {}) => {
     certUploadedAt: row.cert_uploaded_at,
     ready: row.active && missing.length === 0,
     missing,
+    arcaCheck: (() => {
+      const check = currentArcaCheck(row);
+      return check ? { ok: check.ok, at: check.at, message: check.message } : null;
+    })(),
     ...(includeCsr ? { csrPem: row.csr_pem || null } : {}),
   };
 };

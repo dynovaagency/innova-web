@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, FileKey, Save, Star, Upload } from 'lucide-react';
+import { CheckCircle, Download, FileKey, PlugZap, Save, Star, Upload, XCircle } from 'lucide-react';
 import { adminFetch } from '../../lib/adminFetch.js';
 import { isValidCuitCuil, normalizeCuitCuil } from '../../lib/validators.js';
 import Badge from '../../components/admin/Badge.jsx';
@@ -12,6 +12,9 @@ import styles from './DatosFacturacion.module.css';
  * Cada admin que vaya a emitir facturas carga acá, por su cuenta:
  *   1. Sus datos fiscales.
  *   2. Su certificado digital de ARCA (pedido → ARCA → subir .crt).
+ *
+ * Una vez cargado el certificado, el admin puede probar la conexión con
+ * ARCA (sin emitir nada) para confirmar que todo quedó bien configurado.
  *
  * También se elige el emisor por defecto: el que factura los productos
  * que no tienen un emisor asignado.
@@ -70,6 +73,8 @@ function DatosFacturacion({ toast }) {
   const [certBusy, setCertBusy] = useState(false);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [defaultBusy, setDefaultBusy] = useState(null);
+  const [testBusy, setTestBusy] = useState(false);
+  const [testSteps, setTestSteps] = useState(null);
 
   const fileInputRef = useRef(null);
 
@@ -249,6 +254,32 @@ function DatosFacturacion({ toast }) {
       'Certificado cargado',
       'Ya quedó asociado a tu cuenta.'
     );
+  };
+
+  const handleTestConnection = async () => {
+    setTestBusy(true);
+    setTestSteps(null);
+    try {
+      const res = await adminFetch('/.netlify/functions/admin-fiscal-test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'No se pudo probar la conexión');
+      setTestSteps(body.steps || []);
+      if (body.emisor) applyEmisor(body.emisor);
+      if (body.ok) {
+        toast.success('Conexión verificada', 'La plataforma ya puede facturar a tu nombre.');
+      } else {
+        toast.error('La prueba encontró un problema', 'Revisá el detalle debajo del botón.');
+      }
+    } catch (err) {
+      console.error('[DatosFacturacion] test error:', err);
+      toast.error('No se pudo probar la conexión', err.message);
+    } finally {
+      setTestBusy(false);
+    }
   };
 
   const handleSetDefault = async (id) => {
@@ -549,6 +580,55 @@ function DatosFacturacion({ toast }) {
                   <span className={styles.hint}>
                     Cargado el {formatDate(emisor.certUploadedAt)}. Vence el {formatDate(emisor.certExpiresAt)}.
                   </span>
+                )}
+              </div>
+            </li>
+
+            <li className={styles.step}>
+              <div className={styles.stepBody}>
+                <strong>Probá la conexión con ARCA</strong>
+                <p>
+                  Verifica tu certificado y tu punto de venta sin emitir ninguna factura.
+                </p>
+                <div className={styles.stepActions}>
+                  <button
+                    type="button"
+                    className={emisor.hasCert && !emisor.arcaCheck?.ok ? styles.primaryBtn : styles.secondaryBtn}
+                    onClick={handleTestConnection}
+                    disabled={testBusy || !emisor.hasCert || !emisor.puntoVenta}
+                  >
+                    <PlugZap size={16} aria-hidden="true" />
+                    {testBusy ? 'Probando…' : 'Probar conexión'}
+                  </button>
+                </div>
+                {!emisor.puntoVenta && emisor.hasCert && (
+                  <span className={styles.hint}>Cargá el punto de venta en tus datos para poder probar.</span>
+                )}
+                {!testSteps && emisor.arcaCheck && (
+                  <span className={emisor.arcaCheck.ok ? styles.checkOk : styles.checkFail}>
+                    {emisor.arcaCheck.ok ? (
+                      <CheckCircle size={14} aria-hidden="true" />
+                    ) : (
+                      <XCircle size={14} aria-hidden="true" />
+                    )}
+                    {emisor.arcaCheck.message} ({formatDate(emisor.arcaCheck.at)})
+                  </span>
+                )}
+                {testSteps && (
+                  <ul className={styles.testSteps}>
+                    {testSteps.map((step) => (
+                      <li key={step.id} className={step.ok ? styles.checkOk : styles.checkFail}>
+                        {step.ok ? (
+                          <CheckCircle size={14} aria-hidden="true" />
+                        ) : (
+                          <XCircle size={14} aria-hidden="true" />
+                        )}
+                        <span>
+                          <strong>{step.label}:</strong> {step.detail}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </li>
