@@ -18,6 +18,8 @@
  *   cancel      → anula una factura emitida con una nota de crédito.
  *                 Con refacturar: true, después crea y emite una factura
  *                 nueva con emisorId (o el mismo emisor si falta).
+ *   resend_email → vuelve a mandar por mail el PDF de un comprobante
+ *                 emitido (o anulado) al comprador.
  *
  * Response:
  *   200 { ok, message?, facturas }   ← lista actualizada del pago
@@ -28,6 +30,7 @@ import { ok, error, preflight } from './_lib/config.js';
 import { requireAdmin } from './_lib/auth/middleware.js';
 import { getSupabase } from './_lib/fiscal.js';
 import { emitInvoice } from './_lib/invoicing.js';
+import { sendInvoiceToBuyer } from './_lib/invoiceDocument.js';
 import * as paymentsRepo from './_lib/repositories/payments.js';
 import {
   UserError,
@@ -39,7 +42,7 @@ import {
   requireActiveEmisor,
 } from './_lib/facturas.js';
 
-const ACTIONS = ['create', 'set_emisor', 'emit_now', 'discard', 'cancel'];
+const ACTIONS = ['create', 'set_emisor', 'emit_now', 'discard', 'cancel', 'resend_email'];
 
 /** Factura del pago indicado; evita operar sobre la de otro pago. */
 const loadFactura = async (facturaId, ref) => {
@@ -146,6 +149,19 @@ const run = async ({ action, ref, facturaId, emisorId, refacturar }, adminEmail)
         message: nuevaResult.ok
           ? 'Factura anulada y emitida de nuevo.'
           : `Factura anulada. La nueva factura no se pudo emitir: ${nuevaResult.message}`,
+      };
+    }
+
+    case 'resend_email': {
+      const factura = await loadFactura(facturaId, ref);
+      if (!factura.cae) throw new UserError('El comprobante todavía no está emitido.');
+      if (!factura.receptor_email) throw new UserError('El pago no tiene email del comprador.');
+      const result = await sendInvoiceToBuyer(factura);
+      return {
+        ok: result.sent,
+        message: result.sent
+          ? `Se envió el comprobante a ${factura.receptor_email}.`
+          : `No se pudo enviar el mail: ${result.error || 'sin detalle'}`,
       };
     }
 

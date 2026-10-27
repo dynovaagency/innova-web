@@ -15,6 +15,7 @@
  * Emails que expone este módulo:
  *   - sendAccessEmail:      post-pago, con link a la cápsula comprada.
  *   - sendCertificateEmail: aviso de certificado disponible, con el PDF adjunto.
+ *   - sendInvoiceEmail:     factura o nota de crédito emitida, con el PDF adjunto.
  */
 
 import { Resend } from 'resend';
@@ -371,6 +372,176 @@ Curso: ${cursoTitle}
 
 Encontrarás el certificado en PDF adjunto a este mail. También podés descargarlo cuando quieras desde tu panel de alumno en ${SITE_URL}/mi-cuenta/mis-cursos.
 ${commentBlock}
+Ante cualquier consulta, escribinos a ${REPLY_TO}.
+
+--
+Innova Trabajo Social
+Este es un mail automático, no respondas a esta casilla.
+`;
+}
+
+
+// --- Email de factura electrónica ------------------------------------
+
+/**
+ * Envía al comprador la factura (o la nota de crédito) con el PDF adjunto.
+ *
+ * @param {object} args
+ * @param {string} args.to              Email del comprador.
+ * @param {boolean} args.isCreditNote   true si es una nota de crédito.
+ * @param {string} args.comprobante     Ej.: "Factura C 00003-00000042".
+ * @param {string} args.cursoTitle      Título del curso/cápsula.
+ * @param {string} args.emisorNombre    Razón social de quien factura.
+ * @param {object} args.pdfAttachment   { filename, content } del PDF.
+ * @param {boolean} args.isTest         true en homologación (sin validez fiscal).
+ */
+export async function sendInvoiceEmail({
+  to,
+  isCreditNote = false,
+  comprobante,
+  cursoTitle,
+  emisorNombre,
+  pdfAttachment,
+  isTest = false,
+}) {
+  const client = getClient();
+  if (!client) return { sent: false, error: 'no_api_key' };
+
+  if (!to || !comprobante || !pdfAttachment) {
+    console.warn('[email] Datos incompletos para enviar factura:', {
+      to: !!to,
+      comprobante: !!comprobante,
+      hasAttachment: !!pdfAttachment,
+    });
+    return { sent: false, error: 'missing_data' };
+  }
+
+  const prefix = isTest ? '[PRUEBA] ' : '';
+  const subject = isCreditNote
+    ? `${prefix}Nota de crédito de tu compra — ${cursoTitle}`
+    : `${prefix}Tu factura — ${cursoTitle}`;
+
+  const args = { isCreditNote, comprobante, cursoTitle, emisorNombre, isTest };
+  const payload = {
+    from: FROM_ADDRESS,
+    to,
+    replyTo: REPLY_TO,
+    subject,
+    html: buildInvoiceHtml(args),
+    text: buildInvoiceText(args),
+    attachments: [
+      {
+        filename: pdfAttachment.filename,
+        content: pdfAttachment.content,
+      },
+    ],
+  };
+
+  try {
+    const { data, error } = await client.emails.send(payload);
+    if (error) {
+      console.error('[email] Resend error (invoice):', error);
+      return { sent: false, error: error.message || 'resend_error' };
+    }
+    console.log('[email] Factura enviada OK:', { to, id: data?.id, comprobante });
+    return { sent: true, id: data?.id };
+  } catch (err) {
+    console.error('[email] Excepción al enviar factura:', err);
+    return { sent: false, error: err.message };
+  }
+}
+
+// --- Templates: factura ----------------------------------------------
+
+function invoiceCopy({ isCreditNote, comprobante, cursoTitle, emisorNombre, isTest }) {
+  const title = isCreditNote ? 'Nota de crédito de tu compra' : 'Tu factura';
+  const intro = isCreditNote
+    ? `Emitimos una nota de crédito que anula la factura de tu compra de "${cursoTitle}". Si corresponde, vas a recibir la nueva factura en otro mail.`
+    : `Te enviamos la factura de tu compra de "${cursoTitle}".`;
+  const testNote = isTest
+    ? 'Este comprobante se emitió en el ambiente de prueba de ARCA y no tiene validez fiscal.'
+    : null;
+  return {
+    title,
+    intro,
+    detail: `${comprobante}${emisorNombre ? ` · emitida por ${emisorNombre}` : ''}`,
+    testNote,
+  };
+}
+
+function buildInvoiceHtml(args) {
+  const { title, intro, detail, testNote } = invoiceCopy(args);
+  const testBlock = testNote
+    ? `
+              <p style="margin: 0 0 16px; padding: 12px 16px; background-color:#fff4e5; border-left: 3px solid #F0A547; border-radius: 4px; font-size: 13px; color: #333333;">
+                ${escapeHtml(testNote)}
+              </p>`
+    : '';
+  const downloadBlock = args.isCreditNote
+    ? ''
+    : `
+              <p style="margin:0 0 16px; font-size:14px; line-height:1.6; color:#333333;">
+                📎 Encontrarás la factura en PDF adjunta a este mail. También podés descargarla cuando quieras desde tu panel de alumno en <a href="${SITE_URL}/mi-cuenta/mis-cursos" style="color:#153F71;">${SITE_URL}/mi-cuenta/mis-cursos</a>.
+              </p>`;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f7fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#153F71;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f7fa; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px; background-color:#ffffff; border-radius:12px; overflow:hidden;">
+          <tr>
+            <td style="padding: 32px 40px; background-color:#153F71; color:#ffffff;">
+              <h1 style="margin:0; font-size:22px; font-weight:700; letter-spacing:0.02em;">Innova Trabajo Social</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin:0 0 16px; font-size:20px; color:#153F71;">${escapeHtml(title)}</h2>
+              <p style="margin:0 0 16px; font-size:15px; line-height:1.6; color:#333333;">
+                ${escapeHtml(intro)}
+              </p>
+              <p style="margin:0 0 16px; font-size:15px; font-weight:600; color:#153F71;">
+                ${escapeHtml(detail)}
+              </p>${testBlock}${downloadBlock}
+              <hr style="border:none; border-top:1px solid #e5e7eb; margin: 24px 0;" />
+              <p style="margin:0; font-size:13px; line-height:1.6; color:#666666;">
+                Ante cualquier consulta, respondé este mail o escribinos a
+                <a href="mailto:${REPLY_TO}" style="color:#153F71;">${REPLY_TO}</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 40px; background-color:#f5f7fa; text-align:center; font-size:12px; color:#999999;">
+              Innova Trabajo Social &middot; Este es un mail automático, no respondas a esta casilla.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildInvoiceText(args) {
+  const { title, intro, detail, testNote } = invoiceCopy(args);
+  const download = args.isCreditNote
+    ? ''
+    : `\nEncontrarás la factura en PDF adjunta a este mail. También podés descargarla cuando quieras desde tu panel de alumno en ${SITE_URL}/mi-cuenta/mis-cursos.\n`;
+
+  return `${title}
+
+${intro}
+
+${detail}
+${testNote ? `\n${testNote}\n` : ''}${download}
 Ante cualquier consulta, escribinos a ${REPLY_TO}.
 
 --

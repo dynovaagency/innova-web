@@ -58,6 +58,8 @@ export const toApiFactura = (row, emisoresById = {}) => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     emitidaAt: row.emitida_at,
+    emailEnviadoAt: row.email_enviado_at || null,
+    emailError: row.email_error || null,
   };
 };
 

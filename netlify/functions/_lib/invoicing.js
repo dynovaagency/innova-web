@@ -7,7 +7,8 @@
  *      margen Innova puede cambiar el emisor desde el detalle del pago.
  *   2. La función programada invoices-process llama a processDueInvoices()
  *      cada 15 minutos y emite las que ya vencieron su margen.
- *   3. emitInvoice() pide el CAE a ARCA y guarda el resultado.
+ *   3. emitInvoice() pide el CAE a ARCA, guarda el resultado y le manda
+ *      el PDF por mail al comprador.
  *
  * Seguridad contra duplicados:
  *   - Índice único: un pago tiene como máximo una factura vigente.
@@ -44,6 +45,7 @@ import {
   toArcaDate,
 } from './arca/wsfe.js';
 import * as productsRepo from './repositories/products.js';
+import { sendInvoiceToBuyer } from './invoiceDocument.js';
 
 const MAX_AUTO_RETRIES = 3;
 const RETRY_AFTER_MS = 60 * 60 * 1000; // 1 hora entre reintentos automáticos
@@ -307,6 +309,10 @@ export const emitInvoice = async (facturaId) => {
           intentos: (factura.intentos || 0) + 1,
         });
         console.log('[invoicing] CAE recuperado de un intento anterior', { id: factura.id });
+        if (factura.tipo === 'nota_credito' && factura.factura_asociada_id) {
+          await saveFactura(factura.factura_asociada_id, { estado: 'anulada' });
+        }
+        await sendInvoiceToBuyer(recovered);
         return { ok: true, factura: recovered };
       }
     }
@@ -396,6 +402,11 @@ export const emitInvoice = async (facturaId) => {
         numero: `${puntoVenta}-${numero}`,
         cae: result.cae,
       });
+
+      // Mail al comprador con el PDF. Nunca lanza: si falla, queda
+      // registrado en la fila y se puede reenviar desde el panel.
+      await sendInvoiceToBuyer(emitida);
+
       return { ok: true, factura: emitida };
     }
 

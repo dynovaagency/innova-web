@@ -8,6 +8,9 @@
  * Headers:
  *   Authorization: Bearer <supabase_access_token>
  *
+ * Cada compra incluye hasInvoice: true si tiene factura electrónica
+ * emitida (se descarga con /download-invoice).
+ *
  * Response:
  *   200 { purchases: [...] }
  *   401 si no hay sesión válida
@@ -43,6 +46,10 @@ export const handler = async (event) => {
 
   try {
     const approved = await paymentsRepo.findApprovedByEmail(email);
+    const invoicedRefs = await findInvoicedRefs(
+      supabase,
+      approved.map((p) => p.externalReference)
+    );
 
     const purchases = await Promise.all(
       approved.map(async (p) => {
@@ -73,6 +80,7 @@ export const handler = async (event) => {
           // Solo exponemos si existe, no la ruta interna del Storage.
           hasCertificate: !!p.certificateUrl,
           certificateUploadedAt: p.certificateUploadedAt || null,
+          hasInvoice: invoicedRefs.has(p.externalReference),
           ...productData,
         };
       })
@@ -84,3 +92,25 @@ export const handler = async (event) => {
     return error(500, 'No se pudieron cargar las compras', { details: err.message });
   }
 };
+
+/**
+ * Referencias de pago que tienen una factura emitida vigente.
+ * Si la consulta falla, devuelve un set vacío: las compras se muestran
+ * igual, solo que sin el botón de factura.
+ */
+async function findInvoicedRefs(supabase, refs) {
+  if (refs.length === 0) return new Set();
+  try {
+    const { data, error: queryError } = await supabase
+      .from('facturas')
+      .select('payment_ref')
+      .in('payment_ref', refs)
+      .eq('tipo', 'factura')
+      .eq('estado', 'emitida');
+    if (queryError) throw queryError;
+    return new Set((data || []).map((row) => row.payment_ref));
+  } catch (err) {
+    console.error('[user-purchases] no se pudieron leer las facturas:', err);
+    return new Set();
+  }
+}

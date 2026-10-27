@@ -1,6 +1,6 @@
 import { adminFetch } from '../../lib/adminFetch.js';
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, RefreshCw, Send, XCircle, Ban, AlertTriangle } from 'lucide-react';
+import { FileText, RefreshCw, Send, XCircle, Ban, AlertTriangle, Download, Mail } from 'lucide-react';
 import Badge from '../../components/admin/Badge.jsx';
 import ConfirmDialog from '../../components/admin/ConfirmDialog.jsx';
 import { formatCurrency, formatDate, formatDateTime } from '../../lib/format.js';
@@ -14,9 +14,10 @@ import styles from './FacturaSection.module.css';
  *   - Pendiente     → cambiar emisor, "Emitir ahora" o "No facturar".
  *   - Emitiendo     → aviso y botón para actualizar.
  *   - Error         → motivo, cambiar emisor, "Reintentar ahora".
- *   - Emitida       → datos del comprobante y "Anular" (nota de crédito),
- *                     con opción de emitir una factura nueva.
- * Abajo, el historial: facturas anuladas y notas de crédito.
+ *   - Emitida       → datos del comprobante, descargar el PDF, reenviarlo
+ *                     por mail y "Anular" (nota de crédito), con opción de
+ *                     emitir una factura nueva.
+ * Abajo, el historial: facturas anuladas y notas de crédito (con su PDF).
  *
  * Props:
  *   payment: el pago (externalReference, status, amount, currency)
@@ -131,7 +132,7 @@ function FacturaSection({ payment, toast }) {
       if (result.ok) {
         toast.success('Listo', result.message);
       } else {
-        toast.error('No se pudo emitir', result.message);
+        toast.error(body.action === 'resend_email' ? 'No se pudo enviar' : 'No se pudo emitir', result.message);
       }
       setCancelPanel({ open: false, refacturar: true, emisorId: '' });
     } catch (err) {
@@ -144,6 +145,33 @@ function FacturaSection({ payment, toast }) {
   };
 
   const ask = (options) => setConfirm(options);
+
+  const downloadPdf = async (factura) => {
+    setBusy(true);
+    try {
+      const res = await adminFetch(`/.netlify/functions/admin-invoice-pdf?id=${encodeURIComponent(factura.id)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Error ${res.status}`);
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] || 'factura.pdf';
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[FacturaSection] pdf error:', err);
+      toast.error('No se pudo descargar el PDF', err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // ---------------------------------------------------------------
   // Render de cada estado
@@ -378,6 +406,21 @@ function FacturaSection({ payment, toast }) {
           <span className={styles.muted}> vence {formatDay(factura.caeVto)}</span>
         </dd>
       </div>
+      <div className={styles.dlRow}>
+        <dt>Mail al comprador</dt>
+        <dd>
+          {factura.emailEnviadoAt ? (
+            <>
+              Enviado el {formatDateTime(factura.emailEnviadoAt)}
+              <span className={styles.muted}> a {factura.receptor.email}</span>
+            </>
+          ) : factura.emailError ? (
+            <span className={styles.fieldHint}>{factura.emailError}</span>
+          ) : (
+            <span className={styles.muted}>No enviado</span>
+          )}
+        </dd>
+      </div>
     </dl>
   );
 
@@ -386,6 +429,33 @@ function FacturaSection({ payment, toast }) {
       {renderComprobante(factura)}
       {!cancelPanel.open ? (
         <div className={styles.actions}>
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            disabled={busy}
+            onClick={() => downloadPdf(factura)}
+          >
+            <Download size={16} aria-hidden="true" />
+            Descargar PDF
+          </button>
+          {factura.receptor.email && (
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              disabled={busy}
+              onClick={() =>
+                ask({
+                  title: '¿Reenviar la factura por mail?',
+                  message: `Se le manda el PDF de la ${factura.cbteLabel} ${factura.numeroFormateado} a ${factura.receptor.email}.`,
+                  confirmLabel: 'Sí, enviar',
+                  body: { action: 'resend_email', facturaId: factura.id },
+                })
+              }
+            >
+              <Mail size={16} aria-hidden="true" />
+              {factura.emailEnviadoAt ? 'Reenviar por mail' : 'Enviar por mail'}
+            </button>
+          )}
           <button
             type="button"
             className={styles.dangerBtn}
@@ -503,7 +573,21 @@ function FacturaSection({ payment, toast }) {
                   {f.cbteLabel || (f.tipo === 'nota_credito' ? 'Nota de crédito' : 'Factura')}{' '}
                   {f.numeroFormateado && <code className={styles.code}>{f.numeroFormateado}</code>}
                 </span>
-                <Badge variant={estadoVariant[f.estado] || 'neutral'}>{estadoLabel[f.estado] || f.estado}</Badge>
+                <div className={styles.historyBadges}>
+                  {f.cae && (
+                    <button
+                      type="button"
+                      className={styles.linkBtn}
+                      disabled={busy}
+                      onClick={() => downloadPdf(f)}
+                      aria-label={`Descargar PDF de ${f.cbteLabel} ${f.numeroFormateado}`}
+                    >
+                      <Download size={14} aria-hidden="true" />
+                      PDF
+                    </button>
+                  )}
+                  <Badge variant={estadoVariant[f.estado] || 'neutral'}>{estadoLabel[f.estado] || f.estado}</Badge>
+                </div>
               </div>
               <p className={styles.historyMeta}>
                 {f.emisor?.razonSocial || 'Sin emisor'} · {formatCurrency(f.importe, payment.currency)}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { BookOpen, ExternalLink, Video, Calendar, Search, FileText, Loader, Award } from 'lucide-react';
+import { BookOpen, ExternalLink, Video, Calendar, Search, FileText, Loader, Award, Receipt } from 'lucide-react';
 import { supabase } from '../../lib/supabase.js';
 import styles from './MisCursos.module.css';
 
@@ -214,7 +214,8 @@ function MisCursos() {
 
 /**
  * Descarga un PDF desde un endpoint protegido con sesión Supabase.
- * Usado tanto para comprobantes como para certificados.
+ * Usado para comprobantes, facturas y certificados. Si el servidor
+ * manda un nombre de archivo, se usa ese.
  */
 async function downloadProtectedPdf(endpoint, externalReference, filename) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -237,10 +238,12 @@ async function downloadProtectedPdf(endpoint, externalReference, filename) {
   }
 
   const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const serverFilename = disposition.match(/filename="([^"]+)"/)?.[1];
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename;
+  link.download = serverFilename || filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -263,9 +266,10 @@ function CourseCard({ purchase, formatDate }) {
     approvedAt,
     createdAt,
     hasCertificate,
+    hasInvoice,
   } = purchase;
 
-  // 'receipt' | 'certificate' | null — qué descarga está en curso
+  // 'receipt' | 'invoice' | 'certificate' | null — qué descarga está en curso
   const [downloading, setDownloading] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
 
@@ -289,6 +293,12 @@ function CourseCard({ purchase, formatDate }) {
           '/.netlify/functions/download-receipt',
           externalReference,
           `comprobante-${externalReference}.pdf`
+        );
+      } else if (type === 'invoice') {
+        await downloadProtectedPdf(
+          '/.netlify/functions/download-invoice',
+          externalReference,
+          `factura-${externalReference}.pdf`
         );
       } else {
         await downloadProtectedPdf(
@@ -368,6 +378,23 @@ function CourseCard({ purchase, formatDate }) {
                 <Award size={16} aria-hidden="true" />
               )}
               {downloading === 'certificate' ? 'Descargando...' : 'Descargar certificado'}
+            </button>
+          )}
+
+          {hasInvoice && (
+            <button
+              type="button"
+              onClick={() => handleDownload('invoice')}
+              disabled={downloading !== null}
+              className={styles.cardBtnSecondary}
+              aria-label="Descargar factura"
+            >
+              {downloading === 'invoice' ? (
+                <Loader size={16} className={styles.spinIcon} aria-hidden="true" />
+              ) : (
+                <Receipt size={16} aria-hidden="true" />
+              )}
+              {downloading === 'invoice' ? 'Descargando...' : 'Descargar factura'}
             </button>
           )}
 
