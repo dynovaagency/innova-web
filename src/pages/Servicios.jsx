@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import SupervisoresCarousel from '../components/supervisores/SupervisoresCarousel.jsx';
+import { getSupervisores } from '../data/supervisores.js';
 import styles from './Servicios.module.css';
 
 const ICONS = {
@@ -158,6 +160,17 @@ function Servicios() {
           </div>
         </aside>
       </div>
+
+      {/* Equipo de supervisión: por ahora solo en la pestaña de Supervisión. */}
+      {active === 'supervision' && (
+        <div className={styles.team}>
+          <SupervisoresCarousel
+            supervisores={getSupervisores()}
+            title="Nuestro equipo de supervisión"
+            subtitle="Conocé a los y las profesionales que acompañan los espacios de supervisión. Entrá a cada perfil para ver su trayectoria y áreas de trabajo."
+          />
+        </div>
+      )}
     </div>
   );
 }

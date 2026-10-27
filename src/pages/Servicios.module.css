@@ -294,6 +294,13 @@
   line-height: 1.4;
 }
 
+/* EQUIPO DE SUPERVISIÓN */
+.team {
+  max-width: var(--container-max);
+  margin: var(--space-3xl) auto 0;
+  padding: 0 var(--space-xl);
+}
+
 @media (max-width: 1024px) {
   .layout { grid-template-columns: 1fr; }
   .subCards { grid-template-columns: 1fr; }
@@ -304,5 +311,6 @@
 @media (max-width: 640px) {
   .header { padding: var(--space-2xl) var(--space-lg); }
   .layout { padding: 0 var(--space-lg); }
+  .team { padding: 0 var(--space-lg); }
   .main, .sidebar { padding: var(--space-lg); }
 }

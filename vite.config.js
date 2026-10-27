@@ -11,5 +11,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        // Librerías grandes en archivos aparte: cambian poco, así el
+        // navegador las guarda en caché entre deploys.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          supabase: ['@supabase/supabase-js'],
+        },
+      },
+    },
   },
 });
