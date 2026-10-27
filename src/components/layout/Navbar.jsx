@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { LogIn, UserCircle, LogOut, ChevronDown } from 'lucide-react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { LogIn, UserCircle, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { useAuthContext } from '../../context/AuthContext.jsx';
 import LoginModal from '../auth/LoginModal.jsx';
 import styles from './Navbar.module.css';
@@ -42,12 +42,49 @@ function LogoMark({ size = 32 }) {
   );
 }
 
+/**
+ * Barra de navegación del sitio público.
+ *
+ * En escritorio muestra los links en línea (Servicios con submenú al
+ * pasar el mouse). Hasta 1024px los links se esconden y aparece el botón
+ * de menú (hamburguesa), que despliega un panel con todas las secciones,
+ * los submenús de Servicios a la vista y el botón de Inscripción.
+ */
 function Navbar() {
   const { user, profile, loading, signOut } = useAuthContext();
   const [loginOpen, setLoginOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const menuRef = useRef(null);
+
+  // El menú mobile se cierra al navegar a otra página.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Con el menú mobile abierto: Escape lo cierra y la página de fondo no
+  // scrollea. Si la pantalla se agranda a escritorio, se cierra solo.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    const desktop = window.matchMedia('(min-width: 1025px)');
+    const handleResize = () => {
+      if (desktop.matches) setMobileOpen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleKey);
+    desktop.addEventListener('change', handleResize);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', handleKey);
+      desktop.removeEventListener('change', handleResize);
+    };
+  }, [mobileOpen]);
 
   // Cerrar el dropdown al hacer click fuera
   useEffect(() => {
@@ -73,6 +110,7 @@ function Navbar() {
 
   const handleGoToProfile = () => {
     setUserMenuOpen(false);
+    setMobileOpen(false);
     // Los admins y superadmins van al panel de administración.
     // Los usuarios comunes van a su panel de alumno.
     if (profile?.role === 'admin' || profile?.role === 'superadmin') {
@@ -202,16 +240,93 @@ function Navbar() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => setLoginOpen(true)}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setLoginOpen(true);
+                  }}
                   className={styles.authBtn}
+                  aria-label="Ingresar"
                 >
                 <LogIn size={18} aria-hidden="true" />
                   <span className={styles.authLabel}>Ingresar</span>
                 </button>
               )
             )}
+
+            <button
+              type="button"
+              className={styles.menuBtn}
+              onClick={() => {
+                setUserMenuOpen(false);
+                setMobileOpen((v) => !v);
+              }}
+              aria-expanded={mobileOpen}
+              aria-controls="menu-mobile"
+              aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              {mobileOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+            </button>
           </div>
         </div>
+
+        {mobileOpen && (
+          <>
+            <div
+              className={styles.mobileBackdrop}
+              onClick={() => setMobileOpen(false)}
+              aria-hidden="true"
+            />
+            <nav id="menu-mobile" className={styles.mobileMenu} aria-label="Menú principal">
+              <ul className={styles.mobileList}>
+                {navItems.map((item) => (
+                  <li key={item.to}>
+                    {item.hasDropdown ? (
+                      <>
+                        <p className={styles.mobileGroupLabel}>{item.label}</p>
+                        <ul className={styles.mobileSubList}>
+                          {item.dropdown.map((sub) => (
+                            <li key={sub.label}>
+                              <NavLink
+                                to={sub.to}
+                                end
+                                className={({ isActive }) =>
+                                  isActive
+                                    ? `${styles.mobileLink} ${styles.mobileSubLink} ${styles.mobileLinkActive}`
+                                    : `${styles.mobileLink} ${styles.mobileSubLink}`
+                                }
+                                onClick={() => setMobileOpen(false)}
+                              >
+                                {sub.label}
+                              </NavLink>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <NavLink
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          isActive ? `${styles.mobileLink} ${styles.mobileLinkActive}` : styles.mobileLink
+                        }
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {item.label}
+                      </NavLink>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/inscripcion"
+                className={styles.mobileCta}
+                onClick={() => setMobileOpen(false)}
+              >
+                Inscripción
+              </Link>
+            </nav>
+          </>
+        )}
       </header>
 
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />

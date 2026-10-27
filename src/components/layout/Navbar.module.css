@@ -344,3 +344,150 @@
     display: none;
   }
 }
+
+/* ---------- Menú mobile (hamburguesa) ---------- */
+
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.menuBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .menuBtn {
+    display: inline-flex;
+  }
+}
+
+/* En pantallas chicas, Inscripción pasa del header al menú para que
+   entre todo. Por encima de 480px el botón queda en el header y el
+   menú no lo repite. */
+@media (max-width: 480px) {
+  .actions > .inscripcionBtn {
+    display: none;
+  }
+}
+
+.mobileBackdrop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.35);
+  z-index: 0;
+}
+
+.mobileMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  max-height: calc(100vh - 72px);
+  max-height: calc(100dvh - 72px);
+  overflow-y: auto;
+  background-color: var(--color-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
+  animation: fadeInDown 0.15s ease-out;
+}
+
+.mobileList {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileList > li + li {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobileLink {
+  display: block;
+  padding: var(--space-sm) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.mobileLink:hover,
+.mobileLinkActive {
+  color: var(--color-text-inverse);
+}
+
+.mobileLinkActive {
+  font-weight: var(--font-weight-semibold);
+  box-shadow: inset 3px 0 0 var(--color-secondary);
+  padding-left: var(--space-sm);
+}
+
+.mobileGroupLabel {
+  margin: 0;
+  padding: var(--space-sm) 0 var(--space-2xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+}
+
+.mobileSubList {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-xs);
+}
+
+.mobileSubLink {
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+}
+
+.mobileSubLink.mobileLinkActive {
+  padding-left: var(--space-md);
+}
+
+.mobileCta {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-md);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.mobileCta:hover {
+  background-color: var(--color-secondary);
+}
+
+@media (max-width: 480px) {
+  .mobileCta {
+    display: flex;
+  }
+}
